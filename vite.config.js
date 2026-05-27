@@ -4,10 +4,7 @@ import { qrcode } from 'vite-plugin-qrcode' // <-- Import the plugin
 
 export default defineConfig({
   base: '/internship-project/',
-  plugins: [
-    basicSsl(),
-    qrcode() // <-- Activate it here
-  ],
+  plugins: command === 'serve' ? [basicSsl(), qrcode()] : [],
   server: {
     host: true,
     port: 5173
