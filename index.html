@@ -3,32 +3,422 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Voice to Text Test</title>
+    <title>Union Packages | Voice B2B</title>
+    <!-- Google Fonts: Outfit for premium look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="app">
+      <!-- Top Bar: App Header & Settings -->
       <header class="app-header">
-        <h1>Voice Dictation</h1>
-        <p class="subtitle">Test your device microphone</p>
+        <div class="header-top">
+          <div class="brand">
+            <span class="logo-dot"></span>
+            <h1>Union Packages</h1>
+          </div>
+          <button id="settings-btn" class="icon-btn" aria-label="API Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+        </div>
       </header>
 
-      <main class="content-area">
-        <div class="transcript-card">
-          <p id="transcript-text" class="placeholder">Your speech will appear here...</p>
-        </div>
-        <p id="status-message" class="status-idle">Tap mic to start</p>
-      </main>
+      <!-- VIEW PANELS -->
 
-      <footer class="controls">
-        <button id="mic-btn" class="mic-btn" aria-label="Toggle Microphone">
-          <svg class="mic-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- TAB 1: STALLS (DELIVERIES & ORDERS) -->
+      <div id="view-stalls" class="tab-view active">
+        <!-- Dashboard Panel -->
+        <section class="dashboard-panel">
+          <div class="dashboard-grid">
+            <div class="dashboard-stat">
+              <span class="stat-label">Today's Sales</span>
+              <span id="stat-sales" class="stat-value">₹0</span>
+            </div>
+            <div class="dashboard-stat">
+              <span class="stat-label">Collected</span>
+              <span id="stat-collected" class="stat-value text-green">₹0</span>
+            </div>
+            <div class="dashboard-stat">
+              <span class="stat-label">Outstanding Due</span>
+              <span id="stat-due" class="stat-value text-amber">₹0</span>
+            </div>
+            <div class="dashboard-stat">
+              <span class="stat-label">Est. Profit</span>
+              <span id="stat-profit" class="stat-value text-blue">₹0</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Search & Filter -->
+        <div class="search-bar-wrapper">
+          <div class="search-container">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="search-input" placeholder="Search active vendors..." />
+            <button id="clear-search-btn" class="clear-search-btn hidden">&times;</button>
+          </div>
+        </div>
+
+        <!-- Sticky Stock Level Alerts Panel -->
+        <div id="stock-alerts-banner" class="stock-alerts-banner hidden">
+          <span class="alert-icon">⚠️</span>
+          <span id="stock-alerts-msg">Some inventory items are running low!</span>
+        </div>
+
+        <!-- Scrollable Vendors List -->
+        <main class="vendors-scroll-area">
+          <div id="vendors-list-container" class="vendors-list">
+            <div class="loading-state">Initializing vendor cards...</div>
+          </div>
+        </main>
+
+        <!-- Floating Microphone Action Button -->
+        <button id="voice-trigger-btn" class="floating-voice-btn" aria-label="Start Voice Order">
+          <svg class="mic-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
             <line x1="12" y1="19" x2="12" y2="22"></line>
           </svg>
         </button>
-      </footer>
+      </div>
+
+      <!-- TAB 2: STOCK (INVENTORY & PRICES MANAGER + STOCK ALERTS) -->
+      <div id="view-stock" class="tab-view hidden">
+        <div class="tab-header-title">
+          <h2>Inventory Stock & Pricing</h2>
+          <p>Set unit prices, monitor stock limits, and receive automatic alerts</p>
+        </div>
+
+        <main class="settings-scroll-body flex-1 padding-20">
+          <div class="inventory-table-card">
+            <div class="inventory-settings-container">
+              <div class="inventory-grid-header">
+                <span>Product Name</span>
+                <span>Price (BP/SP)</span>
+                <span>Stock / Limit</span>
+                <span>Actions</span>
+              </div>
+              <div id="tab-inventory-list" class="tab-inventory-list">
+                <!-- Dynamically populated in main.js -->
+              </div>
+            </div>
+            
+            <button id="tab-add-product-btn" class="add-row-btn margin-top w-100">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add New Product
+            </button>
+          </div>
+        </main>
+      </div>
+
+      <!-- TAB 3: ANALYTICS (BUSINESS PERFORMANCE DASHBOARD) -->
+      <div id="view-analytics" class="tab-view hidden">
+        <div class="tab-header-title">
+          <h2>Business Analytics</h2>
+          <p>Track sales, profit, collections, product movement, and inventory risk</p>
+        </div>
+
+        <main class="analytics-scroll-area flex-1 padding-20">
+          <section class="analytics-controls-card">
+            <div>
+              <span class="kpi-label">Month View</span>
+              <p>Each month is tracked separately; outstanding dues stay live.</p>
+            </div>
+            <select id="analytics-month-select" class="analytics-month-select" aria-label="Analytics month"></select>
+          </section>
+
+          <section class="analytics-kpi-grid">
+            <div class="analytics-kpi-card">
+              <span class="kpi-label">Total Sales</span>
+              <strong id="analytics-total-sales">₹0</strong>
+              <span class="kpi-caption">Recorded order value</span>
+            </div>
+            <div class="analytics-kpi-card">
+              <span class="kpi-label">Gross Profit</span>
+              <strong id="analytics-total-profit">₹0</strong>
+              <span id="analytics-profit-margin" class="kpi-caption">0% margin</span>
+            </div>
+            <div class="analytics-kpi-card">
+              <span class="kpi-label">Collected</span>
+              <strong id="analytics-total-collected">₹0</strong>
+              <span id="analytics-collection-rate" class="kpi-caption">0% collected</span>
+            </div>
+            <div class="analytics-kpi-card">
+              <span class="kpi-label">Outstanding</span>
+              <strong id="analytics-total-due">₹0</strong>
+              <span id="analytics-active-vendors" class="kpi-caption">0 vendors pending</span>
+            </div>
+          </section>
+
+          <section class="analytics-card">
+            <div class="analytics-card-header">
+              <div>
+                <h3>Profit by Product</h3>
+                <p>Which items are creating the most gross profit</p>
+              </div>
+              <span id="analytics-best-product" class="analytics-chip">No sales yet</span>
+            </div>
+            <div id="analytics-profit-chart" class="bar-chart-list"></div>
+          </section>
+
+          <section class="analytics-card">
+            <div class="analytics-card-header">
+              <div>
+                <h3>Sales Mix</h3>
+                <p>Revenue share across your top products</p>
+              </div>
+            </div>
+            <div id="analytics-sales-mix" class="mix-chart"></div>
+          </section>
+
+          <section class="analytics-card">
+            <div class="analytics-card-header">
+              <div>
+                <h3>Vendor Dues</h3>
+                <p>Highest pending balances to collect tonight</p>
+              </div>
+            </div>
+            <div id="analytics-vendor-dues" class="ranked-list"></div>
+          </section>
+
+          <section class="analytics-card">
+            <div class="analytics-card-header">
+              <div>
+                <h3>Inventory Risk</h3>
+                <p>Items closest to stockout based on configured limits</p>
+              </div>
+              <span id="analytics-low-stock-count" class="analytics-chip danger">0 low</span>
+            </div>
+            <div id="analytics-inventory-risk" class="ranked-list compact"></div>
+          </section>
+        </main>
+      </div>
+
+      <!-- TAB 4: DIRECTORY (VENDORS DIRECTORY LIST + ADD VENDOR) -->
+      <div id="view-directory" class="tab-view hidden">
+        <div class="tab-header-title">
+          <h2>Vendors Directory</h2>
+          <p>Manage your client database and register new food stalls</p>
+        </div>
+
+        <!-- Add Vendor Input Field -->
+        <section class="add-vendor-box">
+          <div class="add-vendor-input-group">
+            <input type="text" id="directory-new-vendor-name" placeholder="Enter new vendor name..." />
+            <button id="directory-add-vendor-btn" class="primary-btn">Add Vendor</button>
+          </div>
+        </section>
+
+        <!-- Search directory -->
+        <div class="search-bar-wrapper">
+          <div class="search-container">
+            <input type="text" id="directory-search-input" placeholder="Search directory..." />
+          </div>
+        </div>
+
+        <!-- Scrollable Vendors Directory List -->
+        <main class="vendors-scroll-area flex-1">
+          <div id="directory-list-container" class="directory-list">
+            <!-- Dynamic elements: vendor name + delete button -->
+          </div>
+        </main>
+      </div>
+
+      <!-- BOTTOM APP NAVIGATION TABS -->
+      <nav class="app-tab-bar">
+        <button class="tab-btn active" data-target="view-stalls">
+          <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="9"></rect>
+            <rect x="14" y="3" width="7" height="5"></rect>
+            <rect x="14" y="12" width="7" height="9"></rect>
+            <rect x="3" y="16" width="7" height="5"></rect>
+          </svg>
+          <span>Stalls</span>
+        </button>
+        <button class="tab-btn" data-target="view-stock">
+          <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="21 16 12 21 3 16"></polyline>
+            <polyline points="21 12 12 17 3 12"></polyline>
+            <polyline points="12 3 21 8 12 13 3 8 12 3"></polyline>
+          </svg>
+          <span class="badge-wrapper">
+            Stock
+            <span id="tab-stock-alert-dot" class="alert-dot hidden"></span>
+          </span>
+        </button>
+        <button class="tab-btn" data-target="view-analytics">
+          <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"></path>
+            <path d="M7 15l4-4 3 3 5-7"></path>
+            <path d="M18 7h1v1"></path>
+          </svg>
+          <span>Analytics</span>
+        </button>
+        <button class="tab-btn" data-target="view-directory">
+          <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>Directory</span>
+        </button>
+      </nav>
+
+      <!-- MODALS & OVERLAYS -->
+
+      <!-- 1. Gemini LLM API Settings Modal -->
+      <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>Gemini API Key</h3>
+            <button id="close-settings-btn" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p class="modal-desc">
+              Paste your free Gemini API Key below for Telugu/Tanglish speech recognition.
+            </p>
+            <div class="form-group margin-top">
+              <input type="password" id="api-key-input" placeholder="AIzaSy..." />
+            </div>
+            <div class="api-status-badge margin-top">
+              <span class="status-dot offline"></span>
+              <span id="api-status-text">Using Local Regex Fallback (Offline)</span>
+            </div>
+            <p class="help-text margin-top">
+              Get a key for free from <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.
+            </p>
+            <div class="settings-reset-panel margin-top">
+              <div>
+                <h4>Testing Resets</h4>
+                <p>Reset demo data or close only the selected analytics month.</p>
+              </div>
+              <button id="monthly-reset-btn" class="secondary-btn w-100">Reset Selected Month Analytics</button>
+              <button id="default-reset-btn" class="primary-btn-danger w-100">Reset App to Defaults</button>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="save-settings-btn" class="primary-btn">Save Key</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Voice Dictation Overlay (FullScreen) -->
+      <div id="voice-overlay" class="modal-overlay voice-overlay hidden">
+        <div class="voice-card">
+          <div class="voice-visualizer">
+            <div class="pulse-ring ring-1"></div>
+            <div class="pulse-ring ring-2"></div>
+            <div class="pulse-ring ring-3"></div>
+            <div class="voice-mic-core">
+              <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="22"></line>
+              </svg>
+            </div>
+          </div>
+          
+          <h2 id="voice-status-text">Listening... Speak now</h2>
+          <p class="voice-hint-text">Try: <i>"Araku Biryani 5 plates and 2 spoons"</i></p>
+
+          <div class="transcript-preview-box">
+            <p id="voice-transcript-preview" class="placeholder-text">Listening to voice input...</p>
+          </div>
+
+          <div class="voice-controls-row">
+            <button id="voice-cancel-btn" class="secondary-btn">Cancel</button>
+            <button id="voice-stop-btn" class="primary-btn-danger">Stop & Process</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Order Confirmation Modal -->
+      <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal-card confirmation-card">
+          <div class="modal-header">
+            <h3>Confirm Voice Order</h3>
+            <button id="close-confirm-btn" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="confirm-source">
+              <span class="source-label">Spoken Text:</span>
+              <p id="confirm-raw-transcript" class="raw-transcript">"..."</p>
+              <div id="parser-badge" class="parser-badge">Gemini Parser</div>
+            </div>
+
+            <!-- Target Vendor Selection -->
+            <div class="form-group margin-top">
+              <label for="confirm-vendor-select">Vendor Name</label>
+              <select id="confirm-vendor-select">
+                <!-- Populated dynamically -->
+              </select>
+              <input type="text" id="confirm-new-vendor-input" class="hidden" placeholder="Enter new vendor name..." />
+              <div class="vendor-toggle-option">
+                <input type="checkbox" id="is-new-vendor-cb" />
+                <label for="is-new-vendor-cb">This is a new vendor</label>
+              </div>
+            </div>
+
+            <!-- Parsed Order Items List -->
+            <div class="items-editor-container">
+              <label>Items Ordered</label>
+              <div id="confirm-items-list" class="confirm-items-list">
+                <!-- Rows containing select inputs for items and number inputs for quantities -->
+              </div>
+              <button id="add-item-row-btn" class="add-row-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Item
+              </button>
+            </div>
+
+            <!-- Calculation Summary -->
+            <div class="billing-summary">
+              <div class="summary-row">
+                <span>Cost Price (Buying):</span>
+                <span id="confirm-total-bp">₹0</span>
+              </div>
+              <div class="summary-row highlight">
+                <span>Selling Price (Due):</span>
+                <span id="confirm-total-sp">₹0</span>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="cancel-confirm-btn" class="secondary-btn">Cancel</button>
+            <button id="save-confirm-btn" class="primary-btn">Save to Vendor Due</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Vendor History Logs Modal -->
+      <div id="vendor-log-modal" class="modal-overlay hidden">
+        <div class="modal-card vendor-log-card">
+          <div class="modal-header">
+            <div>
+              <h3 id="vendor-log-title">Vendor Logs</h3>
+              <p id="vendor-log-subtitle" class="modal-desc">Month and day wise activity</p>
+            </div>
+            <button id="close-vendor-log-btn" class="close-btn">&times;</button>
+          </div>
+          <div id="vendor-log-list" class="vendor-log-list"></div>
+        </div>
+      </div>
     </div>
+
+    <!-- Main Module Script -->
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
