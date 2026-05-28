@@ -346,16 +346,6 @@ body {
   0% { background: rgba(239, 68, 68, 0.06); }
   100% { background: rgba(239, 68, 68, 0.12); }
 }
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-}
-
-.tab-header-title p {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 2px;
-}
 
 /* Bottom Navigation Tab Bar */
 .app-tab-bar {
