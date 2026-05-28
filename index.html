@@ -118,6 +118,34 @@
               Add New Product
             </button>
           </div>
+
+          <div class="inventory-table-card">
+            <div class="analytics-card-header">
+              <div>
+                <h3>Inventory Purchase Logs</h3>
+                <p>Track spending on individual products and full purchase history</p>
+              </div>
+              <select id="stock-log-month-select" class="analytics-month-select" aria-label="Stock log month"></select>
+            </div>
+            
+            <!-- Date Filter (Just like Vendor Logs) -->
+            <div class="vendor-log-filter" style="margin-bottom: 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; padding: 10px; background: rgba(255, 255, 255, 0.025); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+              <label for="stock-log-date-filter" style="grid-column: 1 / -1; font-size: 10px; font-weight: 800; letter-spacing: 0.4px; color: var(--text-muted); text-transform: uppercase;">Jump to date</label>
+              <input type="date" id="stock-log-date-filter" style="min-width: 0; padding: 9px 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-main); font-family: inherit; font-size: 12px;" />
+              <button id="clear-stock-log-date-btn" class="secondary-btn" style="padding: 9px 12px; font-size: 12px;">Clear</button>
+            </div>
+
+            <!-- Spending by Product Summary -->
+            <div class="inventory-spending-summary" style="margin-bottom: 16px;">
+              <h4 style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Spending by Product</h4>
+              <div id="stock-product-spending-list" class="ranked-list compact">
+                <!-- Dynamically populated e.g. Product Name: ₹Total Spent -->
+              </div>
+            </div>
+
+            <h4 style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Purchase History</h4>
+            <div id="stock-debit-log-list" class="vendor-log-list" style="max-height: 350px; overflow-y: auto;"></div>
+          </div>
         </main>
       </div>
 
@@ -413,6 +441,11 @@
               <p id="vendor-log-subtitle" class="modal-desc">Month and day wise activity</p>
             </div>
             <button id="close-vendor-log-btn" class="close-btn">&times;</button>
+          </div>
+          <div class="vendor-log-filter">
+            <label for="vendor-log-date-filter">Jump to date</label>
+            <input type="date" id="vendor-log-date-filter" />
+            <button id="clear-vendor-log-date-btn" class="secondary-btn">Clear</button>
           </div>
           <div id="vendor-log-list" class="vendor-log-list"></div>
         </div>

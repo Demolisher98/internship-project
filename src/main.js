@@ -35,23 +35,52 @@ const VENDORS_STATIC = [
 ];
 
 const INVENTORY_STATIC_DEFAULTS = [
-  { id: "buffey_plates", name: "Buffey Plates", sp: 220, bp: 180, stock: 75, maxStock: 100, unit: "pack (100 pcs)" },
-  { id: "paper_cups", name: "Paper Cups", sp: 60, bp: 40, stock: 5, maxStock: 100, unit: "pack (100 pcs)" }, // Low default for testing
-  { id: "plastic_spoons", name: "Plastic Spoons", sp: 45, bp: 30, stock: 90, maxStock: 100, unit: "pack (100 pcs)" },
-  { id: "wooden_spoons", name: "Wooden Spoons", sp: 70, bp: 50, stock: 15, maxStock: 100, unit: "pack (100 pcs)" }, // Med default for testing
-  { id: "foil_containers", name: "Aluminium Foil Container", sp: 350, bp: 280, stock: 30, maxStock: 100, unit: "pack (100 pcs)" }, // Med default
-  { id: "juice_glasses", name: "Juice Glasses", sp: 120, bp: 90, stock: 8, maxStock: 100, unit: "pack (50 pcs)" }, // Low default
-  { id: "falooda_glasses", name: "Falooda Glasses", sp: 190, bp: 150, stock: 35, maxStock: 100, unit: "pack (50 pcs)" }, // Med default
-  { id: "tissues", name: "Tissues", sp: 100, bp: 70, stock: 50, maxStock: 100, unit: "pack (1000 pcs)" },
-  { id: "packaging_bags", name: "Packaging Bags", sp: 140, bp: 110, stock: 12, maxStock: 20, unit: "kg" },
-  { id: "garbage_bags", name: "Garbage Bags", sp: 110, bp: 80, stock: 25, maxStock: 30, unit: "pack (30 pcs)" },
-  { id: "parota_wrapping", name: "Parota Wrapping Paper", sp: 160, bp: 120, stock: 8, maxStock: 10, unit: "bundle" }
+  { id: "buffey_plates", name: "Buffey Plates", sp: 360, bp: 309.6, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "1000ml_boxes", name: "1000ml boxes", sp: 400, bp: 370, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "750ml_boxes", name: "750ml boxes", sp: 370, bp: 340, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "13_16_thank_you", name: "13*16 thank you", sp: 160, bp: 140, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "13_16_china", name: "13*16 china", sp: 150, bp: 110, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "13_16_white", name: "13*16 white", sp: 150, bp: 110, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "10_12_thank_you", name: "10*12 thank you", sp: 160, bp: 140, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "10_12_china", name: "10*12 china", sp: 150, bp: 110, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "5_6", name: "5*6", sp: 50, bp: 37.5, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "sample_box", name: "sample box", sp: 40, bp: 30, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "tissues", name: "tissues", sp: 20, bp: 16, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "silver_plates", name: "silver plates", sp: 55, bp: 38, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "500ml_boxes", name: "500ml boxes", sp: 260, bp: 220, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "250ml_boxes", name: "250ml boxes", sp: 200, bp: 180, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "7_9", name: "7*9", sp: 70, bp: 50, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "6_8", name: "6*8", sp: 60, bp: 40, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "straws", name: "straws", sp: 30, bp: 20, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "350ml_glasses", name: "350ml glasses", sp: 100, bp: 90, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "300ml_glasses", name: "300ml glasses", sp: 80, bp: 70, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "350_lid", name: "350 lid", sp: 60, bp: 50, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "250ml_glass", name: "250ml glass", sp: 80, bp: 70, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "300_lid", name: "300 lid", sp: 50, bp: 40, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "spoon", name: "spoon", sp: 30, bp: 22, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "fork", name: "fork", sp: 30, bp: 22, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "toothpick", name: "toothpick", sp: 120, bp: 100, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "wooden_spoon", name: "wooden spoon", sp: 70, bp: 60, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "hand_glovess", name: "hand glovess", sp: 30, bp: 23, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "small_bowl", name: "small bowl", sp: 40, bp: 30, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "big_bowl", name: "big bowl", sp: 50, bp: 40, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "thermo_plate_9", name: "thermo plate 9", sp: 46, bp: 36, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "thermo_plate_7", name: "thermo plate 7", sp: 70, bp: 56, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "multi_10", name: "multi 10", sp: 25, bp: 18, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "board_10", name: "board 10", sp: 13, bp: 8, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "wrap", name: "wrap", sp: 350, bp: 300, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "silver_foil", name: "silver foil", sp: 390, bp: 350, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "dustbin_cover_10", name: "dustbin cover 10", sp: 950, bp: 850, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "dustbin_cover_1k", name: "dustbin cover 1k", sp: 150, bp: 110, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "tape_1inch", name: "tape 1inch", sp: 200, bp: 170, stock: 50, maxStock: 100, unit: "pack" },
+  { id: "tape_2inch", name: "tape 2inch", sp: 450, bp: 400, stock: 50, maxStock: 100, unit: "pack" }
 ];
 
 // App State Management
 let appState = {
   vendors: [],
   inventory: [],
+  purchaseLogs: [],
   apiKey: ""
 };
 
@@ -60,6 +89,7 @@ function initStore() {
   const storedState = localStorage.getItem("union_packages_state");
   const storedKey = localStorage.getItem("union_packages_api_key");
   const storedInventory = localStorage.getItem("union_packages_inventory");
+  const storedPurchaseLogs = localStorage.getItem("union_packages_purchase_logs");
   
   if (storedKey) {
     appState.apiKey = storedKey;
@@ -68,12 +98,17 @@ function initStore() {
   // Initialize inventory with stock levels
   if (storedInventory) {
     appState.inventory = JSON.parse(storedInventory);
+    // Automatic upgrade migration if loaded inventory has old catalog defaults
+    if (appState.inventory.length <= 11) {
+      appState.inventory = JSON.parse(JSON.stringify(INVENTORY_STATIC_DEFAULTS));
+      localStorage.setItem("union_packages_inventory", JSON.stringify(appState.inventory));
+    }
   } else {
     appState.inventory = JSON.parse(JSON.stringify(INVENTORY_STATIC_DEFAULTS));
     localStorage.setItem("union_packages_inventory", JSON.stringify(appState.inventory));
   }
-  
-  // Initialize vendors
+
+  appState.purchaseLogs = storedPurchaseLogs ? JSON.parse(storedPurchaseLogs) : [];
   if (storedState) {
     appState.vendors = JSON.parse(storedState);
     appState.vendors.forEach(v => {
@@ -98,6 +133,7 @@ function saveStore() {
   localStorage.setItem("union_packages_state", JSON.stringify(appState.vendors));
   localStorage.setItem("union_packages_api_key", appState.apiKey);
   localStorage.setItem("union_packages_inventory", JSON.stringify(appState.inventory));
+  localStorage.setItem("union_packages_purchase_logs", JSON.stringify(appState.purchaseLogs));
 }
 
 // DOM elements hooks
@@ -146,6 +182,12 @@ const closeVendorLogBtn = document.getElementById("close-vendor-log-btn");
 const vendorLogTitle = document.getElementById("vendor-log-title");
 const vendorLogSubtitle = document.getElementById("vendor-log-subtitle");
 const vendorLogList = document.getElementById("vendor-log-list");
+const vendorLogDateFilter = document.getElementById("vendor-log-date-filter");
+const clearVendorLogDateBtn = document.getElementById("clear-vendor-log-date-btn");
+let activeVendorLogIndex = null;
+let selectedStockLogMonth = getMonthKey(new Date());
+
+// Navigation Tabs
 
 // Navigation Tabs
 const tabButtons = document.querySelectorAll(".app-tab-bar .tab-btn");
@@ -157,6 +199,11 @@ const stockAlertsMsg = document.getElementById("stock-alerts-msg");
 // Stock Tab
 const tabInventoryList = document.getElementById("tab-inventory-list");
 const tabAddProductBtn = document.getElementById("tab-add-product-btn");
+const stockDebitLogList = document.getElementById("stock-debit-log-list");
+const stockLogMonthSelect = document.getElementById("stock-log-month-select");
+const stockLogDateFilter = document.getElementById("stock-log-date-filter");
+const clearStockLogDateBtn = document.getElementById("clear-stock-log-date-btn");
+const stockProductSpendingList = document.getElementById("stock-product-spending-list");
 
 // Directory Tab
 const directoryListContainer = document.getElementById("directory-list-container");
@@ -250,6 +297,7 @@ tabButtons.forEach(btn => {
     // Refresh view content
     if (target === "view-stock") {
       renderStockTabList();
+      renderStockDebitLogs();
     } else if (target === "view-analytics") {
       renderAnalytics();
     } else if (target === "view-directory") {
@@ -348,6 +396,55 @@ function getRecordDate(record, vendor) {
   const fallback = vendor?.lastUpdated ? new Date(vendor.lastUpdated) : new Date();
   const date = new Date(record.timestamp || record.createdAt || fallback);
   return Number.isNaN(date.getTime()) ? fallback : date;
+}
+
+function getDateInputValue(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function normalizeName(value) {
+  return (value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function levenshteinDistance(a, b) {
+  const left = normalizeName(a);
+  const right = normalizeName(b);
+  if (!left) return right.length;
+  if (!right) return left.length;
+
+  const dp = Array.from({ length: left.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= right.length; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= left.length; i++) {
+    for (let j = 1; j <= right.length; j++) {
+      const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+    }
+  }
+
+  return dp[left.length][right.length];
+}
+
+function findNearestVendorName(spokenName) {
+  if (appState.vendors.length === 0) return "";
+  const normalizedSpoken = normalizeName(spokenName);
+  if (!normalizedSpoken) return appState.vendors[0].name;
+
+  const exact = appState.vendors.find(v => normalizeName(v.name) === normalizedSpoken);
+  if (exact) return exact.name;
+
+  const ranked = appState.vendors
+    .map(vendor => ({
+      name: vendor.name,
+      score: levenshteinDistance(normalizedSpoken, vendor.name)
+    }))
+    .sort((a, b) => a.score - b.score);
+
+  return ranked[0]?.name || appState.vendors[0].name;
 }
 
 function getAnalyticsMonths() {
@@ -537,6 +634,7 @@ function resetAppToDefaults() {
     lastUpdated: 0
   }));
   appState.inventory = JSON.parse(JSON.stringify(INVENTORY_STATIC_DEFAULTS));
+  appState.purchaseLogs = [];
   appState.apiKey = preservedApiKey;
   selectedAnalyticsMonth = getMonthKey(new Date());
   saveStore();
@@ -554,6 +652,7 @@ function resetSelectedMonthAnalytics() {
       vendor.lastUpdated = vendor.due > 0 ? vendor.lastUpdated : 0;
     }
   });
+  appState.purchaseLogs = (appState.purchaseLogs || []).filter(log => getRecordMonth(log) !== monthKey);
   saveStore();
   renderAll();
 }
@@ -596,6 +695,8 @@ function renderAnalytics() {
 function renderVendorLogs(vendorIdx) {
   const vendor = appState.vendors[vendorIdx];
   if (!vendor) return;
+  activeVendorLogIndex = vendorIdx;
+  const selectedDate = vendorLogDateFilter.value;
 
   const logs = [];
   (vendor.orders || []).forEach(order => {
@@ -621,19 +722,21 @@ function renderVendorLogs(vendorIdx) {
     });
   });
 
-  logs.sort((a, b) => b.date - a.date);
+  const visibleLogs = logs
+    .filter(log => !selectedDate || getDateInputValue(log.date) === selectedDate)
+    .sort((a, b) => b.date - a.date);
   vendorLogTitle.textContent = `${vendor.name} Logs`;
-  vendorLogSubtitle.textContent = `${logs.length} entries • Current due ${formatCurrency(vendor.due || 0)}`;
+  vendorLogSubtitle.textContent = `${visibleLogs.length} entries • Current due ${formatCurrency(vendor.due || 0)}`;
   vendorLogList.innerHTML = "";
 
-  if (logs.length === 0) {
-    renderEmptyAnalytics(vendorLogList, "No orders or collections recorded for this vendor yet.");
+  if (visibleLogs.length === 0) {
+    renderEmptyAnalytics(vendorLogList, selectedDate ? "No vendor activity found for the selected date." : "No orders or collections recorded for this vendor yet.");
     vendorLogModal.classList.remove("hidden");
     return;
   }
 
   const groupedByMonth = new Map();
-  logs.forEach(log => {
+  visibleLogs.forEach(log => {
     const monthKey = getMonthKey(log.date);
     const dayKey = log.date.toLocaleDateString("en-IN", {
       weekday: "short",
@@ -917,7 +1020,23 @@ function renderStockTabList() {
         <input type="number" class="stock-item-stock" value="${stock}" placeholder="Stock" min="0" max="${max}" data-index="${index}" title="Current Stock" />
         <input type="number" class="stock-item-max" value="${max}" placeholder="Max Limit" min="1" data-index="${index}" title="Max Capacity" />
       </div>
-      <button class="delete-item-row-btn" data-index="${index}">&times;</button>
+      <div class="stock-actions-col">
+        <button class="buy-item-row-btn" data-index="${index}" title="Buy stock">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <path d="M16 10a4 4 0 0 1-8 0"></path>
+          </svg>
+        </button>
+        <button class="delete-item-row-btn" data-index="${index}" title="Delete product">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+        </button>
+      </div>
     `;
 
     // Attach inline listeners to dynamically update the state on typing/focus change
@@ -960,6 +1079,11 @@ function renderStockTabList() {
     tabInventoryList.appendChild(row);
   });
 
+  // Attach buy listeners
+  tabInventoryList.querySelectorAll(".buy-item-row-btn").forEach(btn => {
+    btn.addEventListener("click", () => openBuyModal(parseInt(btn.getAttribute("data-index"))));
+  });
+
   // Attach delete listeners
   tabInventoryList.querySelectorAll(".delete-item-row-btn").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -974,28 +1098,379 @@ function renderStockTabList() {
   });
 }
 
+function getStockLogMonths() {
+  const months = new Set([getMonthKey(new Date())]);
+  (appState.purchaseLogs || []).forEach(log => months.add(getRecordMonth(log)));
+  return [...months].sort().reverse();
+}
+
+function syncStockLogMonthSelect() {
+  const months = getStockLogMonths();
+  if (!months.includes(selectedStockLogMonth)) {
+    selectedStockLogMonth = months[0] || getMonthKey(new Date());
+  }
+
+  stockLogMonthSelect.innerHTML = "";
+  months.forEach(monthKey => {
+    const option = document.createElement("option");
+    option.value = monthKey;
+    option.textContent = formatMonthLabel(monthKey);
+    stockLogMonthSelect.appendChild(option);
+  });
+  stockLogMonthSelect.value = selectedStockLogMonth;
+}
+
+// ----------------------
+// BUY MODAL — proper UI replacing prompt()
+// ----------------------
+
+// Inject buy modal into DOM once
+(function injectBuyModal() {
+  const modal = document.createElement("div");
+  modal.id = "buy-modal";
+  modal.className = "modal-overlay hidden";
+  modal.innerHTML = `
+    <div class="modal-card buy-modal-card">
+      <div class="modal-header">
+        <h3>Buy Stock</h3>
+        <button id="close-buy-modal-btn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="buy-modal-item-name" id="buy-modal-item-name">—</div>
+        <div class="buy-modal-current-bp" id="buy-modal-current-bp"></div>
+
+        <div class="buy-modal-fields">
+          <div class="buy-modal-field">
+            <label>Quantity</label>
+            <input type="number" id="buy-qty-input" min="1" value="1" placeholder="Qty" />
+          </div>
+          <div class="buy-modal-field">
+            <label>Price per unit (₹)</label>
+            <input type="number" id="buy-price-input" min="0" step="0.01" placeholder="BP" />
+          </div>
+        </div>
+
+        <div class="buy-modal-total-row">
+          <span>Total Cost</span>
+          <strong id="buy-modal-total">₹0</strong>
+        </div>
+
+        <div id="buy-price-notice" class="buy-price-notice hidden"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancel-buy-modal-btn" class="secondary-btn">Cancel</button>
+        <button id="confirm-buy-modal-btn" class="primary-btn">Confirm Purchase</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("app").appendChild(modal);
+
+  // Wire up close/cancel
+  modal.querySelector("#close-buy-modal-btn").addEventListener("click", closeBuyModal);
+  modal.querySelector("#cancel-buy-modal-btn").addEventListener("click", closeBuyModal);
+
+  // Live total + price notice
+  const qtyInput = modal.querySelector("#buy-qty-input");
+  const priceInput = modal.querySelector("#buy-price-input");
+  const totalEl = modal.querySelector("#buy-modal-total");
+  const noticeEl = modal.querySelector("#buy-price-notice");
+
+  function updateBuyModalCalc() {
+    const qty = parseFloat(qtyInput.value) || 0;
+    const price = parseFloat(priceInput.value) || 0;
+    totalEl.textContent = `₹${(qty * price).toLocaleString("en-IN")}`;
+
+    const itemIdx = parseInt(modal.getAttribute("data-item-idx"));
+    const item = appState.inventory[itemIdx];
+    if (!item) return;
+
+    const currentBp = item.bp || 0;
+    const currentStock = item.stock || 0;
+
+    if (price > 0 && price !== currentBp) {
+      if (currentStock > 0) {
+        noticeEl.className = "buy-price-notice pending";
+        noticeEl.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          New price ₹${price} will activate once current stock of <strong>${currentStock} units</strong> is sold out. Old stock continues at ₹${currentBp}.
+        `;
+      } else {
+        noticeEl.className = "buy-price-notice immediate";
+        noticeEl.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Stock is at 0 — price will update to ₹${price} immediately.
+        `;
+      }
+    } else {
+      noticeEl.className = "buy-price-notice hidden";
+      noticeEl.innerHTML = "";
+    }
+  }
+
+  qtyInput.addEventListener("input", updateBuyModalCalc);
+  priceInput.addEventListener("input", updateBuyModalCalc);
+
+  modal.querySelector("#confirm-buy-modal-btn").addEventListener("click", () => {
+    const itemIdx = parseInt(modal.getAttribute("data-item-idx"));
+    const qty = parseInt(qtyInput.value);
+    const price = parseFloat(priceInput.value);
+
+    if (Number.isNaN(qty) || qty <= 0) {
+      qtyInput.focus(); return;
+    }
+    if (Number.isNaN(price) || price < 0) {
+      priceInput.focus(); return;
+    }
+
+    commitInventoryPurchase(itemIdx, qty, price);
+    closeBuyModal();
+  });
+})();
+
+function openBuyModal(itemIdx) {
+  const item = appState.inventory[itemIdx];
+  if (!item) return;
+  const modal = document.getElementById("buy-modal");
+  modal.setAttribute("data-item-idx", itemIdx);
+
+  modal.querySelector("#buy-modal-item-name").textContent = item.name;
+  modal.querySelector("#buy-modal-current-bp").textContent =
+    `Current BP: ₹${item.bp || 0}  •  Stock: ${item.stock || 0} units`;
+  modal.querySelector("#buy-qty-input").value = 1;
+  modal.querySelector("#buy-price-input").value = item.bp || "";
+  modal.querySelector("#buy-modal-total").textContent = `₹${item.bp || 0}`;
+  modal.querySelector("#buy-price-notice").className = "buy-price-notice hidden";
+  modal.querySelector("#buy-price-notice").innerHTML = "";
+
+  modal.classList.remove("hidden");
+  modal.querySelector("#buy-qty-input").focus();
+}
+
+function closeBuyModal() {
+  document.getElementById("buy-modal").classList.add("hidden");
+}
+
+function commitInventoryPurchase(itemIdx, qty, enteredPrice) {
+  const item = appState.inventory[itemIdx];
+  if (!item) return;
+
+  const currentStock = item.stock || 0;
+  const currentBp = item.bp || 0;
+  const timestamp = new Date().toISOString();
+
+  // Price logic:
+  // - If stock is 0 OR price matches current bp → update bp immediately
+  // - If stock > 0 AND price differs → store as pendingBp (activates when stock hits 0)
+  if (currentStock === 0 || enteredPrice === currentBp) {
+    item.bp = enteredPrice;
+    delete item.pendingBp;
+  } else if (enteredPrice !== currentBp) {
+    // Keep current bp for old stock, queue new price for when stock runs out
+    item.pendingBp = enteredPrice;
+  }
+
+  item.stock = currentStock + qty;
+  if ((item.maxStock || 0) < item.stock) item.maxStock = item.stock;
+
+  appState.purchaseLogs.push({
+    itemId: item.id,
+    itemName: item.name,
+    quantity: qty,
+    bp: enteredPrice,
+    previousBp: currentBp,
+    priceChanged: enteredPrice !== currentBp,
+    amount: qty * enteredPrice,
+    timestamp,
+    monthKey: getMonthKey(timestamp)
+  });
+
+  saveStore();
+  renderStockTabList();
+  renderStockDebitLogs();
+  checkStockAlerts();
+}
+
+// Call this whenever stock is deducted (after saving an order)
+// to apply pendingBp if stock has now reached 0
+function applyPendingBpIfStockDepleted() {
+  let changed = false;
+  appState.inventory.forEach(item => {
+    if ((item.stock || 0) === 0 && item.pendingBp !== undefined) {
+      item.bp = item.pendingBp;
+      delete item.pendingBp;
+      changed = true;
+    }
+  });
+  if (changed) saveStore();
+}
+
+function renderStockDebitLogs() {
+  syncStockLogMonthSelect();
+  const selectedDate = stockLogDateFilter ? stockLogDateFilter.value : "";
+
+  // 1. Filter logs by date or by month select
+  const logs = (appState.purchaseLogs || [])
+    .map(log => ({ ...log, date: getRecordDate(log) }))
+    .filter(log => {
+      if (selectedDate) {
+        return getDateInputValue(log.date) === selectedDate;
+      }
+      return getRecordMonth(log) === selectedStockLogMonth;
+    })
+    .sort((a, b) => b.date - a.date);
+
+  // 2. Aggregate spending by product
+  const spendingMap = new Map();
+  logs.forEach(log => {
+    const cost = log.amount || 0;
+    const existing = spendingMap.get(log.itemName) || { name: log.itemName, spent: 0, qty: 0 };
+    existing.spent += cost;
+    existing.qty += log.quantity || 0;
+    spendingMap.set(log.itemName, existing);
+  });
+
+  const productSpending = [...spendingMap.values()].sort((a, b) => b.spent - a.spent);
+
+  // 3. Render Spending by Product breakdown
+  if (stockProductSpendingList) {
+    stockProductSpendingList.innerHTML = "";
+    if (productSpending.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state compact";
+      empty.textContent = "No product spending recorded for the selected period.";
+      stockProductSpendingList.appendChild(empty);
+    } else {
+      productSpending.forEach((row, index) => {
+        const item = document.createElement("div");
+        item.className = "ranked-list-row";
+        item.style.padding = "6px 0";
+
+        const left = document.createElement("div");
+        left.className = "ranked-list-main";
+        const rank = document.createElement("span");
+        rank.className = "rank-badge";
+        rank.textContent = index + 1;
+        const name = document.createElement("span");
+        name.textContent = row.name;
+        left.append(rank, name);
+
+        const value = document.createElement("strong");
+        value.textContent = `₹${row.spent}`;
+        value.style.color = "var(--text-main)";
+
+        item.append(left, value);
+        stockProductSpendingList.appendChild(item);
+      });
+    }
+  }
+
+  // 4. Render daily debit log entries
+  stockDebitLogList.innerHTML = "";
+  if (logs.length === 0) {
+    renderEmptyAnalytics(stockDebitLogList, selectedDate ? "No purchases recorded for the selected date." : "No purchases recorded for this month.");
+    return;
+  }
+
+  const dayMap = new Map();
+  logs.forEach(log => {
+    const dayKey = log.date.toLocaleDateString("en-IN", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short"
+    });
+    if (!dayMap.has(dayKey)) dayMap.set(dayKey, []);
+    dayMap.get(dayKey).push(log);
+  });
+
+  const monthBlock = document.createElement("section");
+  monthBlock.className = "vendor-log-month";
+  const monthTitle = document.createElement("h4");
+  monthTitle.textContent = selectedDate ? new Date(selectedDate).toLocaleDateString("en-IN", { month: "long", year: "numeric", day: "numeric" }) : formatMonthLabel(selectedStockLogMonth);
+  monthBlock.appendChild(monthTitle);
+
+  dayMap.forEach((dayLogs, dayLabel) => {
+    const dayBlock = document.createElement("div");
+    dayBlock.className = "vendor-log-day";
+    const dayTitle = document.createElement("div");
+    dayTitle.className = "vendor-log-day-title";
+    dayTitle.textContent = dayLabel;
+    dayBlock.appendChild(dayTitle);
+
+    dayLogs.forEach(log => {
+      const row = document.createElement("div");
+      row.className = "vendor-log-row debit";
+      const left = document.createElement("div");
+
+      const type = document.createElement("span");
+      type.className = "vendor-log-type";
+      type.textContent = "Purchase";
+
+      const desc = document.createElement("strong");
+      desc.textContent = `${log.itemName}  ×${log.quantity}`;
+
+      const meta = document.createElement("small");
+      const priceInfo = log.priceChanged
+        ? `₹${log.bp} each  •  <span class="price-changed-tag">price changed from ₹${log.previousBp}</span>`
+        : `₹${log.bp} each`;
+      meta.innerHTML = `${log.date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}  •  ${priceInfo}`;
+
+      left.append(type, desc, meta);
+
+      const right = document.createElement("div");
+      right.className = "log-right-col";
+
+      const amount = document.createElement("span");
+      amount.className = "vendor-log-amount";
+      amount.textContent = `-${formatCurrency(log.amount || 0)}`;
+
+      const unitLabel = document.createElement("small");
+      unitLabel.className = "log-unit-label";
+      unitLabel.textContent = `${log.quantity} × ₹${log.bp}`;
+
+      right.append(amount, unitLabel);
+      row.append(left, right);
+      dayBlock.appendChild(row);
+    });
+
+    monthBlock.appendChild(dayBlock);
+  });
+
+  stockDebitLogList.appendChild(monthBlock);
+}
+
 tabAddProductBtn.addEventListener("click", () => {
   appState.inventory.push({
     id: "custom_" + Date.now(),
     name: "New Product",
     bp: 0,
     sp: 0,
-    stock: 80,
+    stock: 0,
     maxStock: 100,
     unit: "pack"
   });
   saveStore();
   renderStockTabList();
+  renderStockDebitLogs();
   
-  // Auto scroll to bottom
+  // Multi-layered auto scroll to bottom
   const container = document.querySelector("#view-stock .settings-scroll-body");
-  container.scrollTop = container.scrollHeight;
+  if (container) {
+    container.scrollTop = container.scrollHeight;
+  }
+  if (tabInventoryList) {
+    tabInventoryList.scrollTop = tabInventoryList.scrollHeight;
+    
+    const rows = tabInventoryList.querySelectorAll(".tab-inventory-row");
+    const lastRow = rows[rows.length - 1];
+    if (lastRow) {
+      lastRow.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
 });
 
 // ----------------------
 // TAB 3: DIRECTORY RENDERING
 // ----------------------
-
 function renderDirectoryList() {
   directoryListContainer.innerHTML = "";
   const query = directorySearchInput.value.toLowerCase().trim();
@@ -1092,6 +1567,7 @@ directoryAddVendorBtn.addEventListener("click", () => {
 // Search Directory
 directorySearchInput.addEventListener("input", renderDirectoryList);
 
+
 // ----------------------
 // PARSERS (GEMINI & FALLBACK)
 // ----------------------
@@ -1129,20 +1605,31 @@ function runLocalFallbackParser(transcript) {
   const quantityRegexStr = "(\\d+|one|two|three|four|five|six|seven|eight|nine|ten|okati|oka|rendu|render|moodu|nalugu|aidu)";
   
   appState.inventory.forEach(item => {
-    let keywords = [item.name.toLowerCase()];
+    const lowerName = item.name.toLowerCase();
+    let keywords = [lowerName];
     
-    // Default abbreviations / synonyms
-    if (item.name.includes("Buffey Plates")) keywords.push("plates", "plate", "buffey");
-    if (item.name.includes("Paper Cups")) keywords.push("cups", "cup", "tea cups");
-    if (item.name.includes("Plastic Spoons")) keywords.push("plastic spoons", "spoons", "spoon");
-    if (item.name.includes("Wooden Spoons")) keywords.push("wooden spoons", "wood spoons", "wooden");
-    if (item.name.includes("Aluminium Foil")) keywords.push("foil", "container", "aluminium container", "box", "boxes");
-    if (item.name.includes("Juice Glasses")) keywords.push("juice glasses", "glass", "glasses", "rose milk cups");
-    if (item.name.includes("Falooda Glasses")) keywords.push("falooda glasses", "falooda glass", "falooda");
-    if (item.name.includes("Tissues")) keywords.push("tissues", "tissue", "paper tissues");
-    if (item.name.includes("Packaging Bags")) keywords.push("bags", "bag", "packaging");
-    if (item.name.includes("Garbage Bags")) keywords.push("garbage", "garbage bags", "dustbin bags");
-    if (item.name.includes("Parota Wrapping")) keywords.push("parota wrapping", "wrapping paper", "wrap", "parota wrap");
+    if (lowerName.endsWith("s")) {
+      keywords.push(lowerName.slice(0, -1));
+    }
+    
+    if (lowerName.includes("*")) {
+      keywords.push(lowerName.replace("*", " "));
+      keywords.push(lowerName.replace("*", "x"));
+    }
+
+    if (lowerName.includes("plate")) keywords.push("plates", "plate");
+    if (lowerName.includes("box")) keywords.push("boxes", "box");
+    if (lowerName.includes("spoon")) keywords.push("spoons", "spoon");
+    if (lowerName.includes("glass")) keywords.push("glasses", "glass");
+    if (lowerName.includes("lid")) keywords.push("lids", "lid");
+    if (lowerName.includes("bowl")) keywords.push("bowls", "bowl");
+    if (lowerName.includes("cover")) keywords.push("covers", "cover");
+    if (lowerName.includes("glove")) keywords.push("gloves", "glove");
+    if (lowerName.includes("foil")) keywords.push("foil");
+    if (lowerName.includes("wrap")) keywords.push("wrap");
+    if (lowerName.includes("straw")) keywords.push("straws", "straw");
+    if (lowerName.includes("toothpick")) keywords.push("toothpicks", "toothpick");
+    if (lowerName.includes("tissue")) keywords.push("tissues", "tissue");
 
     for (const keyword of keywords) {
       const forwardRegex = new RegExp(`${quantityRegexStr}\\s*(?:packets|packet|bundles|bundle|kg|pack|packs|of)?\\s*${keyword}`, "i");
@@ -1195,7 +1682,7 @@ Available Product Inventory List (dynamic):
 ${JSON.stringify(appState.inventory.map(i => i.name))}
 
 Matching Instructions:
-1. Fuzzy-match the vendor name to the closest one in the Vendors List. If no close match exists, output the spoken vendor name and set "isNewVendor" to true.
+1. Fuzzy-match the vendor name to the closest one in the Vendors List. Prefer an existing vendor even when pronunciation is imperfect. Only set "isNewVendor" to true when the user clearly says this is a new vendor.
 2. Fuzzy-match the items to the Product Inventory List. 
 3. Convert all Telugu number terms to digits: "okati"/"oka"->1, "rendu"/"render"->2, "moodu"->3, "nalugu"->4, "aidu"->5, "aaru"->6, "edu"->7, "enimidi"->8, "tommidi"->9, "padi"->10.
 4. Output strict JSON containing ONLY the properties: "vendorName" (string), "isNewVendor" (boolean), and "items" (array of objects with "name" and "qty"). Do not write any markdown blocks.
@@ -1270,22 +1757,13 @@ function openOrderConfirmation(parsedData, rawTranscript) {
     confirmVendorSelect.appendChild(opt);
   });
 
-  isNewVendorCb.checked = !!parsedData.isNewVendor;
-  
-  if (parsedData.isNewVendor) {
-    confirmVendorSelect.classList.add("hidden");
-    confirmNewVendorInput.classList.remove("hidden");
-    confirmNewVendorInput.value = parsedData.vendorName || "";
-  } else {
-    confirmVendorSelect.classList.remove("hidden");
-    confirmNewVendorInput.classList.add("hidden");
-    
-    if (parsedData.vendorName) {
-      const matched = appState.vendors.find(v => v.name.toLowerCase() === parsedData.vendorName.toLowerCase()) || appState.vendors[0];
-      confirmVendorSelect.value = matched ? matched.name : "";
-    } else {
-      confirmVendorSelect.selectedIndex = 0;
-    }
+  isNewVendorCb.checked = false;
+  confirmVendorSelect.classList.remove("hidden");
+  confirmNewVendorInput.classList.add("hidden");
+  confirmNewVendorInput.value = parsedData.vendorName || "";
+
+  if (appState.vendors.length > 0) {
+    confirmVendorSelect.value = findNearestVendorName(parsedData.vendorName);
   }
 
   // Populate items
@@ -1307,7 +1785,7 @@ function openOrderConfirmation(parsedData, rawTranscript) {
   confirmModal.classList.remove("hidden");
 }
 
-function addItemRow(selectedName = "", qty = 1) {
+function addItemRow(selectedName = "", qty = 1, price = null) {
   const row = document.createElement("div");
   row.className = "confirm-item-row";
   
@@ -1316,7 +1794,7 @@ function addItemRow(selectedName = "", qty = 1) {
   appState.inventory.forEach(item => {
     const opt = document.createElement("option");
     opt.value = item.name;
-    opt.textContent = `${item.name} (₹${item.sp}) - Stock: ${item.stock}`;
+    opt.textContent = item.name;
     select.appendChild(opt);
   });
   
@@ -1329,6 +1807,16 @@ function addItemRow(selectedName = "", qty = 1) {
   qtyInput.className = "confirm-qty-input";
   qtyInput.min = "1";
   qtyInput.value = qty;
+  qtyInput.title = "Quantity";
+
+  const priceInput = document.createElement("input");
+  priceInput.type = "number";
+  priceInput.className = "confirm-price-input";
+  priceInput.min = "0";
+  priceInput.title = "Custom Selling Price";
+  
+  const matchedInv = appState.inventory.find(i => i.name === select.value);
+  priceInput.value = price !== null ? price : (matchedInv ? matchedInv.sp : 0);
 
   const removeBtn = document.createElement("button");
   removeBtn.className = "remove-item-row-btn";
@@ -1338,11 +1826,20 @@ function addItemRow(selectedName = "", qty = 1) {
     recalculateConfirmationTotals();
   });
 
-  select.addEventListener("change", recalculateConfirmationTotals);
+  select.addEventListener("change", () => {
+    const item = appState.inventory.find(i => i.name === select.value);
+    if (item) {
+      priceInput.value = item.sp;
+    }
+    recalculateConfirmationTotals();
+  });
+  
   qtyInput.addEventListener("input", recalculateConfirmationTotals);
+  priceInput.addEventListener("input", recalculateConfirmationTotals);
 
   row.appendChild(select);
   row.appendChild(qtyInput);
+  row.appendChild(priceInput);
   row.appendChild(removeBtn);
   confirmItemsList.appendChild(row);
 }
@@ -1355,14 +1852,16 @@ function recalculateConfirmationTotals() {
   rows.forEach(row => {
     const select = row.querySelector(".confirm-item-select");
     const qtyInput = row.querySelector(".confirm-qty-input");
+    const priceInput = row.querySelector(".confirm-price-input");
     
     const itemName = select.value;
     const qty = parseInt(qtyInput.value) || 0;
+    const customSp = parseFloat(priceInput.value) || 0;
     
     const matchedInv = appState.inventory.find(i => i.name === itemName);
     if (matchedInv) {
       totalBp += matchedInv.bp * qty;
-      totalSp += matchedInv.sp * qty;
+      totalSp += customSp * qty;
     }
   });
 
@@ -1473,6 +1972,33 @@ closeConfirmBtn.addEventListener("click", () => confirmModal.classList.add("hidd
 cancelConfirmBtn.addEventListener("click", () => confirmModal.classList.add("hidden"));
 closeVendorLogBtn.addEventListener("click", () => vendorLogModal.classList.add("hidden"));
 
+vendorLogDateFilter.addEventListener("change", () => {
+  if (activeVendorLogIndex !== null) renderVendorLogs(activeVendorLogIndex);
+});
+
+clearVendorLogDateBtn.addEventListener("click", () => {
+  vendorLogDateFilter.value = "";
+  if (activeVendorLogIndex !== null) renderVendorLogs(activeVendorLogIndex);
+});
+
+stockLogMonthSelect.addEventListener("change", () => {
+  selectedStockLogMonth = stockLogMonthSelect.value;
+  renderStockDebitLogs();
+});
+
+if (stockLogDateFilter) {
+  stockLogDateFilter.addEventListener("change", () => {
+    renderStockDebitLogs();
+  });
+}
+
+if (clearStockLogDateBtn) {
+  clearStockLogDateBtn.addEventListener("click", () => {
+    stockLogDateFilter.value = "";
+    renderStockDebitLogs();
+  });
+}
+
 isNewVendorCb.addEventListener("change", () => {
   if (isNewVendorCb.checked) {
     confirmVendorSelect.classList.add("hidden");
@@ -1515,9 +2041,11 @@ saveConfirmBtn.addEventListener("click", () => {
   rows.forEach(row => {
     const select = row.querySelector(".confirm-item-select");
     const qtyInput = row.querySelector(".confirm-qty-input");
+    const priceInput = row.querySelector(".confirm-price-input");
     
     const itemName = select.value;
     const qty = parseInt(qtyInput.value) || 0;
+    const customSp = parseFloat(priceInput.value) || 0;
     
     if (qty > 0) {
       const matchedInv = appState.inventory.find(i => i.name === itemName);
@@ -1525,12 +2053,12 @@ saveConfirmBtn.addEventListener("click", () => {
         orders.push({
           itemName: itemName,
           quantity: qty,
-          sp: matchedInv.sp,
+          sp: customSp,
           bp: matchedInv.bp,
           timestamp: new Date().toISOString(),
           monthKey: getMonthKey(new Date())
         });
-        totalSp += matchedInv.sp * qty;
+        totalSp += customSp * qty;
 
         // Deduct inventory stock
         matchedInv.stock = Math.max(0, (matchedInv.stock || 0) - qty);
@@ -1563,6 +2091,7 @@ saveConfirmBtn.addEventListener("click", () => {
   vendor.orders = [...vendor.orders, ...orders];
 
   saveStore();
+  applyPendingBpIfStockDepleted(); // activate new BP if any item just hit 0 stock
   confirmModal.classList.add("hidden");
   renderAll();
   checkStockAlerts();
@@ -1606,6 +2135,7 @@ function renderAll() {
   renderVendorsList(searchInput.value);
   updateDashboardMetrics();
   renderAnalytics();
+  renderStockDebitLogs();
   updateAPIStatusUI();
   checkStockAlerts();
 }
