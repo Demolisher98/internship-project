@@ -4,15 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Union Packages | Voice B2B</title>
-    <!-- Google Fonts: Outfit for premium look -->
-     <link rel="stylesheet" href="./src/style.css">
+    <link rel="stylesheet" href="./src/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="app">
-      <!-- Top Bar: App Header & Settings -->
       <header class="app-header">
         <div class="header-top">
           <div class="brand">
@@ -28,11 +26,7 @@
         </div>
       </header>
 
-      <!-- VIEW PANELS -->
-
-      <!-- TAB 1: STALLS (DELIVERIES & ORDERS) -->
       <div id="view-stalls" class="tab-view active">
-        <!-- Dashboard Panel -->
         <section class="dashboard-panel">
           <div class="dashboard-grid">
             <div class="dashboard-stat">
@@ -54,7 +48,6 @@
           </div>
         </section>
 
-        <!-- Search & Filter -->
         <div class="search-bar-wrapper">
           <div class="search-container">
             <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -66,20 +59,17 @@
           </div>
         </div>
 
-        <!-- Sticky Stock Level Alerts Panel -->
         <div id="stock-alerts-banner" class="stock-alerts-banner hidden">
           <span class="alert-icon">⚠️</span>
           <span id="stock-alerts-msg">Some inventory items are running low!</span>
         </div>
 
-        <!-- Scrollable Vendors List -->
         <main class="vendors-scroll-area">
           <div id="vendors-list-container" class="vendors-list">
             <div class="loading-state">Initializing vendor cards...</div>
           </div>
         </main>
 
-        <!-- Floating Microphone Action Button -->
         <button id="voice-trigger-btn" class="floating-voice-btn" aria-label="Start Voice Order">
           <svg class="mic-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
@@ -89,7 +79,6 @@
         </button>
       </div>
 
-      <!-- TAB 2: STOCK (INVENTORY & PRICES MANAGER + STOCK ALERTS) -->
       <div id="view-stock" class="tab-view hidden">
         <div class="tab-header-title">
           <h2>Inventory Stock & Pricing</h2>
@@ -106,8 +95,7 @@
                 <span>Actions</span>
               </div>
               <div id="tab-inventory-list" class="tab-inventory-list">
-                <!-- Dynamically populated in main.js -->
-              </div>
+                </div>
             </div>
             
             <button id="tab-add-product-btn" class="add-row-btn margin-top w-100">
@@ -128,19 +116,16 @@
               <select id="stock-log-month-select" class="analytics-month-select" aria-label="Stock log month"></select>
             </div>
             
-            <!-- Date Filter (Just like Vendor Logs) -->
             <div class="vendor-log-filter" style="margin-bottom: 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; padding: 10px; background: rgba(255, 255, 255, 0.025); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
               <label for="stock-log-date-filter" style="grid-column: 1 / -1; font-size: 10px; font-weight: 800; letter-spacing: 0.4px; color: var(--text-muted); text-transform: uppercase;">Jump to date</label>
               <input type="date" id="stock-log-date-filter" style="min-width: 0; padding: 9px 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-main); font-family: inherit; font-size: 12px;" />
               <button id="clear-stock-log-date-btn" class="secondary-btn" style="padding: 9px 12px; font-size: 12px;">Clear</button>
             </div>
 
-            <!-- Spending by Product Summary -->
             <div class="inventory-spending-summary" style="margin-bottom: 16px;">
               <h4 style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Spending by Product</h4>
               <div id="stock-product-spending-list" class="ranked-list compact">
-                <!-- Dynamically populated e.g. Product Name: ₹Total Spent -->
-              </div>
+                </div>
             </div>
 
             <h4 style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Purchase History</h4>
@@ -149,7 +134,6 @@
         </main>
       </div>
 
-      <!-- TAB 3: ANALYTICS (BUSINESS PERFORMANCE DASHBOARD) -->
       <div id="view-analytics" class="tab-view hidden">
         <div class="tab-header-title">
           <h2>Business Analytics</h2>
@@ -232,14 +216,12 @@
         </main>
       </div>
 
-      <!-- TAB 4: DIRECTORY (VENDORS DIRECTORY LIST + ADD VENDOR) -->
       <div id="view-directory" class="tab-view hidden">
         <div class="tab-header-title">
           <h2>Vendors Directory</h2>
           <p>Manage your client database and register new food stalls</p>
         </div>
 
-        <!-- Add Vendor Input Field -->
         <section class="add-vendor-box">
           <div class="add-vendor-input-group">
             <input type="text" id="directory-new-vendor-name" placeholder="Enter new vendor name..." />
@@ -247,22 +229,18 @@
           </div>
         </section>
 
-        <!-- Search directory -->
         <div class="search-bar-wrapper">
           <div class="search-container">
             <input type="text" id="directory-search-input" placeholder="Search directory..." />
           </div>
         </div>
 
-        <!-- Scrollable Vendors Directory List -->
         <main class="vendors-scroll-area flex-1">
           <div id="directory-list-container" class="directory-list">
-            <!-- Dynamic elements: vendor name + delete button -->
-          </div>
+            </div>
         </main>
       </div>
 
-      <!-- BOTTOM APP NAVIGATION TABS -->
       <nav class="app-tab-bar">
         <button class="tab-btn active" data-target="view-stalls">
           <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -303,16 +281,21 @@
         </button>
       </nav>
 
-      <!-- MODALS & OVERLAYS -->
-
-      <!-- 1. Gemini LLM API Settings Modal -->
       <div id="settings-modal" class="modal-overlay hidden">
         <div class="modal-card">
           <div class="modal-header">
-            <h3>Gemini API Key</h3>
+            <h3>Settings & Integration</h3>
             <button id="close-settings-btn" class="close-btn">&times;</button>
           </div>
           <div class="modal-body">
+            
+            <div class="form-group margin-top">
+              <label>App Theme</label>
+              <button id="theme-toggle-btn" class="secondary-btn" style="width: 100%;">Switch to Dark Mode</button>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border-color); margin: 16px 0;" />
+            
             <p class="modal-desc">
               Paste your free Gemini API Key below for Telugu/Tanglish speech recognition.
             </p>
@@ -341,7 +324,6 @@
         </div>
       </div>
 
-      <!-- 2. Voice Dictation Overlay (FullScreen) -->
       <div id="voice-overlay" class="modal-overlay voice-overlay hidden">
         <div class="voice-card">
           <div class="voice-visualizer">
@@ -371,7 +353,6 @@
         </div>
       </div>
 
-      <!-- 3. Order Confirmation Modal -->
       <div id="confirm-modal" class="modal-overlay hidden">
         <div class="modal-card confirmation-card">
           <div class="modal-header">
@@ -385,12 +366,10 @@
               <div id="parser-badge" class="parser-badge">Gemini Parser</div>
             </div>
 
-            <!-- Target Vendor Selection -->
             <div class="form-group margin-top">
               <label for="confirm-vendor-select">Vendor Name</label>
               <select id="confirm-vendor-select">
-                <!-- Populated dynamically -->
-              </select>
+                </select>
               <input type="text" id="confirm-new-vendor-input" class="hidden" placeholder="Enter new vendor name..." />
               <div class="vendor-toggle-option">
                 <input type="checkbox" id="is-new-vendor-cb" />
@@ -398,12 +377,10 @@
               </div>
             </div>
 
-            <!-- Parsed Order Items List -->
             <div class="items-editor-container">
               <label>Items Ordered</label>
               <div id="confirm-items-list" class="confirm-items-list">
-                <!-- Rows containing select inputs for items and number inputs for quantities -->
-              </div>
+                </div>
               <button id="add-item-row-btn" class="add-row-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -413,7 +390,6 @@
               </button>
             </div>
 
-            <!-- Calculation Summary -->
             <div class="billing-summary">
               <div class="summary-row">
                 <span>Cost Price (Buying):</span>
@@ -432,7 +408,6 @@
         </div>
       </div>
 
-      <!-- 4. Vendor History Logs Modal -->
       <div id="vendor-log-modal" class="modal-overlay hidden">
         <div class="modal-card vendor-log-card">
           <div class="modal-header">
@@ -452,7 +427,6 @@
       </div>
     </div>
 
-    <!-- Main Module Script -->
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

@@ -90,6 +90,23 @@ function initStore() {
   const storedKey = localStorage.getItem("union_packages_api_key");
   const storedInventory = localStorage.getItem("union_packages_inventory");
   const storedPurchaseLogs = localStorage.getItem("union_packages_purchase_logs");
+
+  if (themeToggleBtn) {
+  themeToggleBtn.addEventListener("click", () => {
+    // Toggle the dark-mode class on the body
+    document.body.classList.toggle("dark-mode");
+    
+    // Check if dark mode is now active
+    const isDark = document.body.classList.contains("dark-mode");
+    
+    // Save preference to local storage
+    localStorage.setItem("union_packages_theme", isDark ? "dark" : "light");
+    
+    // Update button text
+    themeToggleBtn.textContent = isDark ? "Switch to Light Mode" : "Switch to Dark Mode";
+  });
+}
+  // -----------------------------------------
   
   if (storedKey) {
     appState.apiKey = storedKey;
@@ -137,6 +154,7 @@ function saveStore() {
 }
 
 // DOM elements hooks
+const themeToggleBtn = document.getElementById("theme-toggle-btn");
 const vendorsContainer = document.getElementById("vendors-list-container");
 const searchInput = document.getElementById("search-input");
 const clearSearchBtn = document.getElementById("clear-search-btn");
@@ -1588,20 +1606,58 @@ function parseWordToNumber(word) {
 }
 
 // Fallback pattern matching engine
+// Fallback pattern matching engine
 function runLocalFallbackParser(transcript) {
   const text = transcript.toLowerCase();
   let matchedVendor = "";
   let matchedItems = [];
 
-  // Match vendor name (use dynamic appState.vendors names)
+  // 1. Fuzzy match vendor name using a sliding window
+  const transcriptWords = normalizeName(text).split(/\s+/);
+  let bestMatch = { name: "", distance: Infinity, allowed: 0 };
+
   for (const v of appState.vendors) {
-    if (text.includes(v.name.toLowerCase())) {
-      matchedVendor = v.name;
-      break;
+    const vName = normalizeName(v.name);
+    if (!vName) continue;
+
+    // Fast path: Exact substring match
+    if (text.includes(vName)) {
+      bestMatch = { name: v.name, distance: 0, allowed: 0 };
+      break; 
+    }
+
+    // Fuzzy path: Levenshtein distance on a sliding window
+    const vendorWords = vName.split(/\s+/);
+    const vLen = vendorWords.length;
+    
+    // Scale allowed typos dynamically: allow ~2 typos per word in the vendor's name
+    const maxAllowedTypos = Math.max(2, vLen * 2); 
+
+    if (transcriptWords.length < vLen) {
+      // If the transcript is shorter than the vendor name, compare directly
+      const dist = levenshteinDistance(vName, transcriptWords.join(" "));
+      if (dist < bestMatch.distance) {
+        bestMatch = { name: v.name, distance: dist, allowed: maxAllowedTypos };
+      }
+    } else {
+      // Slide a window matching the vendor's word count across the transcript
+      for (let i = 0; i <= transcriptWords.length - vLen; i++) {
+        const windowText = transcriptWords.slice(i, i + vLen).join(" ");
+        const dist = levenshteinDistance(vName, windowText);
+        
+        if (dist < bestMatch.distance) {
+          bestMatch = { name: v.name, distance: dist, allowed: maxAllowedTypos };
+        }
+      }
     }
   }
 
-  // Parse products and quantities
+  // Assign the vendor if the best fuzzy match is within our acceptable typo threshold
+  if (bestMatch.name && bestMatch.distance <= bestMatch.allowed) {
+    matchedVendor = bestMatch.name;
+  }
+
+  // 2. Parse products and quantities (Unchanged)
   const quantityRegexStr = "(\\d+|one|two|three|four|five|six|seven|eight|nine|ten|okati|oka|rendu|render|moodu|nalugu|aidu)";
   
   appState.inventory.forEach(item => {
