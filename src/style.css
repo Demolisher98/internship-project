@@ -720,7 +720,7 @@ body {
   text-decoration: underline;
 }
 
-/* Floating Microphone Action Button */
+/* Floating Microphone Action Button & Blob Effect[cite: 1] */
 .floating-voice-btn {
   position: absolute;
   right: 20px;
@@ -740,18 +740,84 @@ body {
   z-index: 15;
 }
 
+/* Floating animated blob behind the button */
+.floating-voice-btn::before {
+  content: '';
+  position: absolute;
+  /* Reduced size for tighter, smaller waves */
+  top: -10%; 
+  left: -10%;
+  width: 120%; 
+  height: 120%;
+  
+  /* Pink to Blue gradient with slight transparency */
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.6) 0%, rgba(59, 130, 246, 0.6) 100%);
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  z-index: -1;
+  
+  /* Sped up the animation from 6s to 3.5s */
+  animation: morphBlob 5s ease-in-out infinite alternate;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.floating-voice-btn:hover::before {
+  /* Increases the brightness/opacity of the gradient on hover */
+  opacity: 0.9;
+}
+
 .floating-voice-btn:hover {
   transform: scale(1.06);
-  box-shadow: 0 0 25px rgba(59, 130, 246, 0.65);
+  box-shadow: 0 0 25px rgba(246, 59, 165, 0.65);
+}
+
+.floating-voice-btn:hover::before {
+  background: rgba(59, 130, 246, 0.45);
 }
 
 .floating-voice-btn:active {
   transform: scale(0.94);
 }
 
+/* Upgraded icon presence */
 .mic-icon {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+  z-index: 2;
+}
+
+/* Pseudo-random fluid blob animation */
+@keyframes morphBlob {
+  0% {
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    transform: rotate(0deg) scale(0.95);
+  }
+  17% {
+    border-radius: 65% 35% 55% 45% / 55% 45% 35% 65%;
+    transform: rotate(45deg) scale(1.02);
+  }
+  34% {
+    border-radius: 30% 70% 40% 60% / 45% 55% 65% 35%;
+    transform: rotate(115deg) scale(0.98);
+  }
+  51% {
+    border-radius: 70% 30% 50% 50% / 30% 40% 70% 60%;
+    transform: rotate(180deg) scale(1.07);
+  }
+  68% {
+    border-radius: 25% 75% 60% 40% / 65% 35% 45% 55%;
+    transform: rotate(260deg) scale(0.96);
+  }
+  85% {
+    border-radius: 50% 50% 30% 70% / 60% 30% 70% 40%;
+    transform: rotate(315deg) scale(1.04);
+  }
+  100% {
+    /* Must perfectly match 0% for a seamless infinite loop */
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    transform: rotate(360deg) scale(0.95);
+  }
 }
 
 /* STOCK TAB STYLES */
