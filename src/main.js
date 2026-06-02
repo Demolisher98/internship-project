@@ -1,4 +1,6 @@
 import './style.css';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
 // Default static lists (used for first-time setup initialization)
 const VENDORS_STATIC = [
@@ -76,6 +78,125 @@ const INVENTORY_STATIC_DEFAULTS = [
   { id: "tape_2inch", name: "tape 2inch", sp: 450, bp: 400, stock: 50, maxStock: 100, unit: "pack" }
 ];
 
+const firebaseConfig = {
+  apiKey: "AIzaSyA7gSYrJftRnyjACnGw884zJgOsQf5H0ms",
+  authDomain: "aeonian-packages.firebaseapp.com",
+  projectId: "aeonian-packages",
+  storageBucket: "aeonian-packages.firebasestorage.app",
+  messagingSenderId: "787992726132",
+  appId: "1:787992726132:web:1086590864d9bb661c5f21",
+  measurementId: "G-MCBYNZ77QV"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const CLOUD_LIVE_DOC = "live";
+const CLOUD_ARCHIVE_COLLECTION = "archives";
+
+// Get today's date as string (YYYY-MM-DD)
+function getTodayDate() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+}
+
+// Check if day has changed and archive previous day's data
+async function checkAndArchiveDayChange() {
+  const today = getTodayDate();
+  const lastStoredDate = localStorage.getItem("union_packages_last_date");
+  
+  if (lastStoredDate && lastStoredDate !== today) {
+    console.log(`📅 Day changed! Archiving data from ${lastStoredDate} to archive bin...`);
+    await archiveDayData(lastStoredDate);
+  }
+  
+  localStorage.setItem("union_packages_last_date", today);
+}
+
+// Archive previous day's data to Firestore archive collection
+async function archiveDayData(dateStr) {
+  try {
+    const archivePayload = {
+      dateStr,
+      archivedAt: new Date().toISOString(),
+      vendors: appState.vendors,
+      inventory: appState.inventory,
+      purchaseLogs: appState.purchaseLogs,
+      archiveType: "daily"
+    };
+
+    const archiveRef = doc(db, CLOUD_ARCHIVE_COLLECTION, `day-${dateStr}`);
+    await setDoc(archiveRef, archivePayload);
+    console.log(`✅ Data from ${dateStr} archived successfully to Firestore!`);
+  } catch (error) {
+    console.error("❌ Daily archive failed:", error.message);
+  }
+}
+
+// Archive selected month's data to Firestore archive collection
+async function archiveMonthData(monthKey) {
+  try {
+    console.log(`📦 Archiving month ${monthKey} to Firestore archive collection...`);
+
+    const monthVendors = appState.vendors.map(vendor => ({
+      name: vendor.name,
+      due: vendor.due,
+      lastUpdated: vendor.lastUpdated,
+      orders: (vendor.orders || []).filter(entry => getRecordMonth(entry) === monthKey),
+      history: (vendor.history || []).filter(entry => getRecordMonth(entry) === monthKey)
+    }));
+
+    const monthLogs = (appState.purchaseLogs || []).filter(log => getRecordMonth(log) === monthKey);
+
+    const archivePayload = {
+      monthKey,
+      archivedAt: new Date().toISOString(),
+      vendors: monthVendors,
+      inventory: appState.inventory,
+      purchaseLogs: monthLogs,
+      archiveType: "monthly"
+    };
+
+    const archiveRef = doc(db, CLOUD_ARCHIVE_COLLECTION, monthKey);
+    await setDoc(archiveRef, archivePayload);
+    console.log(`✅ Month ${monthKey} archived successfully to Firestore!`);
+  } catch (error) {
+    console.error("❌ Monthly archive failed:", error.message);
+  }
+}
+
+// Firestore Fetch
+async function fetchFromCloud() {
+  try {
+    console.log("☁️  Fetching from Firestore live document...");
+    const liveDocRef = doc(db, "app", CLOUD_LIVE_DOC);
+    const snapshot = await getDoc(liveDocRef);
+    if (!snapshot.exists()) {
+      console.log("⚠️ No live cloud document found yet.");
+      return null;
+    }
+    const data = snapshot.data();
+    console.log("✅ Cloud data fetched successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ Cloud fetch failed:", error.message);
+    return null;
+  }
+}
+
+// Firestore Save
+async function saveToCloud(data) {
+  try {
+    console.log("☁️  Saving to Firestore live document...", data);
+    const liveDocRef = doc(db, "app", CLOUD_LIVE_DOC);
+    await setDoc(liveDocRef, data);
+    console.log("✅ Cloud save successful!");
+    return { success: true };
+  } catch (error) {
+    console.error("❌ Cloud save failed:", error.message);
+    return null;
+  }
+}
+
 // App State Management
 let appState = {
   vendors: [],
@@ -84,57 +205,37 @@ let appState = {
   apiKey: ""
 };
 
-// Initial state setup
-function initStore() {
-  const storedState = localStorage.getItem("union_packages_state");
-  const storedKey = localStorage.getItem("union_packages_api_key");
-  const storedInventory = localStorage.getItem("union_packages_inventory");
-  const storedPurchaseLogs = localStorage.getItem("union_packages_purchase_logs");
-
-  if (themeToggleBtn) {
-  themeToggleBtn.addEventListener("click", () => {
-    // Toggle the dark-mode class on the body
-    document.body.classList.toggle("dark-mode");
-    
-    // Check if dark mode is now active
-    const isDark = document.body.classList.contains("dark-mode");
-    
-    // Save preference to local storage
-    localStorage.setItem("union_packages_theme", isDark ? "dark" : "light");
-    
-    // Update button text
-    themeToggleBtn.textContent = isDark ? "Switch to Light Mode" : "Switch to Dark Mode";
-  });
-}
-  // -----------------------------------------
+// Initial state setup (CLOUD VERSION)
+async function initStore() {
+  console.log("🔄 Initializing app store from cloud...");
   
-  if (storedKey) {
-    appState.apiKey = storedKey;
-  }
+  // Check if day has changed and archive previous day's data
+  await checkAndArchiveDayChange();
   
-  // Initialize inventory with stock levels
-  if (storedInventory) {
-    appState.inventory = JSON.parse(storedInventory);
-    // Automatic upgrade migration if loaded inventory has old catalog defaults
-    if (appState.inventory.length <= 11) {
+  const cloudData = await fetchFromCloud();
+  
+  if (cloudData && cloudData.vendors) {
+    console.log("📦 Loading from cloud");
+    appState.apiKey = cloudData.credentials?.geminiKey || "";
+    appState.purchaseLogs = cloudData.purchaseLogs || [];
+    
+    if (cloudData.inventory && cloudData.inventory.length > 0) {
+      appState.inventory = cloudData.inventory;
+    } else {
       appState.inventory = JSON.parse(JSON.stringify(INVENTORY_STATIC_DEFAULTS));
-      localStorage.setItem("union_packages_inventory", JSON.stringify(appState.inventory));
+    }
+    
+    if (cloudData.vendors && cloudData.vendors.length > 0) {
+      appState.vendors = cloudData.vendors;
+      appState.vendors.forEach(v => {
+        if (v.lastUpdated === undefined) v.lastUpdated = 0;
+        if (!v.orders) v.orders = [];
+        if (!v.history) v.history = [];
+      });
     }
   } else {
+    console.log("📄 Cloud data empty, using defaults");
     appState.inventory = JSON.parse(JSON.stringify(INVENTORY_STATIC_DEFAULTS));
-    localStorage.setItem("union_packages_inventory", JSON.stringify(appState.inventory));
-  }
-
-  appState.purchaseLogs = storedPurchaseLogs ? JSON.parse(storedPurchaseLogs) : [];
-  if (storedState) {
-    appState.vendors = JSON.parse(storedState);
-    appState.vendors.forEach(v => {
-      if (v.lastUpdated === undefined) v.lastUpdated = 0;
-      if (!v.orders) v.orders = [];
-      if (!v.history) v.history = [];
-    });
-  } else {
-    // Populate defaults with ₹0 due amount
     appState.vendors = VENDORS_STATIC.map(name => ({
       name: name,
       due: 0,
@@ -142,15 +243,32 @@ function initStore() {
       history: [],
       lastUpdated: 0
     }));
-    saveStore();
+    appState.purchaseLogs = [];
+    await saveStore();
+  }
+  
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener("click", () => {
+      document.body.classList.toggle("dark-mode");
+      const isDark = document.body.classList.contains("dark-mode");
+      localStorage.setItem("union_packages_theme", isDark ? "dark" : "light");
+      themeToggleBtn.textContent = isDark ? "Switch to Light Mode" : "Switch to Dark Mode";
+    });
   }
 }
 
-function saveStore() {
-  localStorage.setItem("union_packages_state", JSON.stringify(appState.vendors));
-  localStorage.setItem("union_packages_api_key", appState.apiKey);
-  localStorage.setItem("union_packages_inventory", JSON.stringify(appState.inventory));
-  localStorage.setItem("union_packages_purchase_logs", JSON.stringify(appState.purchaseLogs));
+async function saveStore() {
+  const dataToSave = {
+    vendors: appState.vendors,
+    inventory: appState.inventory,
+    purchaseLogs: appState.purchaseLogs,
+    credentials: {
+      geminiKey: appState.apiKey
+    },
+    savedAt: new Date().toISOString()
+  };
+  console.log("💾 Saving to cloud:", dataToSave);
+  return await saveToCloud(dataToSave);
 }
 
 // DOM elements hooks
@@ -170,6 +288,7 @@ const closeSettingsBtn = document.getElementById("close-settings-btn");
 const saveSettingsBtn = document.getElementById("save-settings-btn");
 const apiKeyInput = document.getElementById("api-key-input");
 const apiStatusText = document.getElementById("api-status-text");
+const apiSaveFeedback = document.getElementById("api-save-feedback");
 const apiStatusDot = document.querySelector(".api-status-badge .status-dot");
 const defaultResetBtn = document.getElementById("default-reset-btn");
 const monthlyResetBtn = document.getElementById("monthly-reset-btn");
@@ -655,14 +774,16 @@ function resetAppToDefaults() {
   appState.purchaseLogs = [];
   appState.apiKey = preservedApiKey;
   selectedAnalyticsMonth = getMonthKey(new Date());
-  saveStore();
+  saveStore().catch(console.error);
   renderStockTabList();
   renderDirectoryList();
   renderAll();
 }
 
-function resetSelectedMonthAnalytics() {
+async function resetSelectedMonthAnalytics() {
   const monthKey = selectedAnalyticsMonth || getMonthKey(new Date());
+  await archiveMonthData(monthKey);
+
   appState.vendors.forEach(vendor => {
     vendor.orders = (vendor.orders || []).filter(order => getRecordMonth(order) !== monthKey);
     vendor.history = (vendor.history || []).filter(payment => getRecordMonth(payment) !== monthKey);
@@ -671,8 +792,8 @@ function resetSelectedMonthAnalytics() {
     }
   });
   appState.purchaseLogs = (appState.purchaseLogs || []).filter(log => getRecordMonth(log) !== monthKey);
-  saveStore();
-  renderAll();
+  await saveStore();
+  await renderAll();
 }
 
 function renderAnalytics() {
@@ -938,7 +1059,7 @@ function renderVendorsList(filterQuery = "") {
         appState.vendors[idx].orders = [];
         appState.vendors[idx].history = [];
         appState.vendors[idx].lastUpdated = 0;
-        saveStore();
+        saveStore().catch(console.error);
         renderAll();
       }
     });
@@ -989,7 +1110,7 @@ function processCollection(vendorIdx, amount) {
     monthKey: getMonthKey(new Date())
   });
 
-  saveStore();
+  saveStore().catch(console.error);
   renderAll();
   
   if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
@@ -1083,7 +1204,7 @@ function renderStockTabList() {
       // Update status pill dynamically inline
       statusWrapper.innerHTML = getStockStatusLabel(targetItem.stock, targetItem.maxStock);
 
-      saveStore();
+      saveStore().catch(console.error);
       checkStockAlerts();
     };
 
@@ -1108,7 +1229,7 @@ function renderStockTabList() {
       const idx = parseInt(btn.getAttribute("data-index"));
       if (confirm(`Remove product "${appState.inventory[idx].name}" from catalog?`)) {
         appState.inventory.splice(idx, 1);
-        saveStore();
+        saveStore().catch(console.error);
         renderStockTabList();
         checkStockAlerts();
       }
@@ -1302,7 +1423,7 @@ function commitInventoryPurchase(itemIdx, qty, enteredPrice) {
     monthKey: getMonthKey(timestamp)
   });
 
-  saveStore();
+  saveStore().catch(console.error);
   renderStockTabList();
   renderStockDebitLogs();
   checkStockAlerts();
@@ -1319,7 +1440,7 @@ function applyPendingBpIfStockDepleted() {
       changed = true;
     }
   });
-  if (changed) saveStore();
+  if (changed) saveStore().catch(console.error);
 }
 
 function renderStockDebitLogs() {
@@ -1466,7 +1587,7 @@ tabAddProductBtn.addEventListener("click", () => {
     maxStock: 100,
     unit: "pack"
   });
-  saveStore();
+  saveStore().catch(console.error);
   renderStockTabList();
   renderStockDebitLogs();
   
@@ -1546,7 +1667,7 @@ function renderDirectoryList() {
       }
 
       appState.vendors.splice(idx, 1);
-      saveStore();
+      saveStore().catch(console.error);
       renderDirectoryList();
     });
   });
@@ -1575,7 +1696,7 @@ directoryAddVendorBtn.addEventListener("click", () => {
     lastUpdated: Date.now() // Bubble to top immediately
   });
 
-  saveStore();
+  saveStore().catch(console.error);
   directoryNewVendorName.value = "";
   renderDirectoryList();
   
@@ -1956,6 +2077,8 @@ async function processSpeechTranscript(transcript) {
 // Toggle Settings Modal (Simplifed to just API key)
 settingsBtn.addEventListener("click", () => {
   apiKeyInput.value = appState.apiKey;
+  apiSaveFeedback.textContent = "";
+  apiSaveFeedback.style.color = "";
   settingsModal.classList.remove("hidden");
 });
 
@@ -1963,11 +2086,18 @@ closeSettingsBtn.addEventListener("click", () => {
   settingsModal.classList.add("hidden");
 });
 
-saveSettingsBtn.addEventListener("click", () => {
+saveSettingsBtn.addEventListener("click", async () => {
   appState.apiKey = apiKeyInput.value.trim();
-  saveStore();
+  const result = await saveStore();
+  if (result) {
+    apiSaveFeedback.textContent = "Gemini key saved to cloud successfully.";
+    apiSaveFeedback.style.color = "#10b981";
+  } else {
+    apiSaveFeedback.textContent = "Failed to save key to cloud. Check console or network.";
+    apiSaveFeedback.style.color = "#f97316";
+  }
   settingsModal.classList.add("hidden");
-  renderAll();
+  await renderAll();
 });
 
 defaultResetBtn.addEventListener("click", () => {
@@ -1978,12 +2108,12 @@ defaultResetBtn.addEventListener("click", () => {
   settingsModal.classList.add("hidden");
 });
 
-monthlyResetBtn.addEventListener("click", () => {
+monthlyResetBtn.addEventListener("click", async () => {
   const monthLabel = formatMonthLabel(selectedAnalyticsMonth);
-  if (!confirm(`Reset analytics entries for ${monthLabel}? Vendor due amounts will remain as they are.`)) {
+  if (!confirm(`Archive and reset analytics entries for ${monthLabel}? Vendor due amounts will remain as they are.`)) {
     return;
   }
-  resetSelectedMonthAnalytics();
+  await resetSelectedMonthAnalytics();
   settingsModal.classList.add("hidden");
 });
 
@@ -2146,7 +2276,7 @@ saveConfirmBtn.addEventListener("click", () => {
   vendor.due += totalSp;
   vendor.orders = [...vendor.orders, ...orders];
 
-  saveStore();
+  saveStore().catch(console.error);
   applyPendingBpIfStockDepleted(); // activate new BP if any item just hit 0 stock
   confirmModal.classList.add("hidden");
   renderAll();
@@ -2186,14 +2316,15 @@ function updateAPIStatusUI() {
 // ----------------------
 // INIT
 // ----------------------
-function renderAll() {
-  initStore();
+async function renderAll() {
+  await initStore();
   renderVendorsList(searchInput.value);
   updateDashboardMetrics();
   renderAnalytics();
   renderStockDebitLogs();
   updateAPIStatusUI();
   checkStockAlerts();
+  console.log("✨ App rendered successfully");
 }
 
 renderAll();
