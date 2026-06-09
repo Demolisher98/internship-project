@@ -365,50 +365,115 @@ const analyticsInventoryRisk = document.getElementById("analytics-inventory-risk
 const analyticsMonthSelect = document.getElementById("analytics-month-select");
 let selectedAnalyticsMonth = getMonthKey(new Date());
 
-// Speech Recognition Init
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
+// Audio Recording Init (MediaRecorder → Gemini Audio STT)
+let mediaRecorder = null;
+let audioChunks = [];
 let isRecording = false;
+let recordingStream = null;
+let pulseInterval = null;
 
-if (SpeechRecognition) {
-  recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = 'en-IN'; 
-  
-  recognition.onstart = () => {
-    isRecording = true;
-    voiceStatusText.textContent = "Listening... Speak now";
-    voiceTranscriptPreview.textContent = "";
-    voiceTranscriptPreview.classList.add("placeholder-text");
-    if (navigator.vibrate) navigator.vibrate(40);
-  };
+function startPulse() {
+  let dots = 0;
+  pulseInterval = setInterval(() => {
+    dots = (dots + 1) % 4;
+    voiceStatusText.textContent = "Listening" + ".".repeat(dots);
+  }, 500);
+}
 
-  recognition.onresult = (event) => {
-    let interimTranscript = '';
-    let finalTranscript = '';
-    
-    for (let i = event.resultIndex; i < event.results.length; ++i) {
-      if (event.results[i].isFinal) {
-        finalTranscript += event.results[i][0].transcript;
-      } else {
-        interimTranscript += event.results[i][0].transcript;
+function stopPulse() {
+  if (pulseInterval) {
+    clearInterval(pulseInterval);
+    pulseInterval = null;
+  }
+}
+
+async function startAudioRecording() {
+  try {
+    recordingStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 16000
       }
-    }
-    
-    const displayVal = finalTranscript || interimTranscript || "Listening to speech...";
-    voiceTranscriptPreview.textContent = displayVal;
-    voiceTranscriptPreview.classList.remove("placeholder-text");
-  };
+    });
 
-  recognition.onerror = (event) => {
-    console.error("Speech Recognition Error:", event.error);
-    voiceStatusText.textContent = `Error: ${event.error}`;
-  };
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(recordingStream, { mimeType: "audio/webm" });
 
-  recognition.onend = () => {
-    isRecording = false;
-  };
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstart = () => {
+      isRecording = true;
+      voiceTranscriptPreview.textContent = "";
+      voiceTranscriptPreview.classList.add("placeholder-text");
+      startPulse();
+      if (navigator.vibrate) navigator.vibrate(40);
+    };
+
+    mediaRecorder.onstop = async () => {
+      isRecording = false;
+      stopPulse();
+      recordingStream.getTracks().forEach(t => t.stop());
+
+      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+      voiceTranscriptPreview.classList.remove("placeholder-text");
+      voiceTranscriptPreview.textContent = "Processing audio...";
+      voiceStatusText.textContent = "Sending to Gemini...";
+
+      await processAudioBlob(audioBlob);
+    };
+
+    mediaRecorder.start(200);
+  } catch (err) {
+    console.error("Microphone access failed:", err);
+    voiceStatusText.textContent = "Mic access denied. Check browser permissions.";
+  }
+}
+
+function stopAudioRecording() {
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+  }
+}
+
+function abortAudioRecording() {
+  stopPulse();
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.onstop = null;
+    mediaRecorder.stop();
+  }
+  if (recordingStream) {
+    recordingStream.getTracks().forEach(t => t.stop());
+  }
+  isRecording = false;
+  audioChunks = [];
+}
+
+async function processAudioBlob(audioBlob) {
+  if (!appState.apiKey) {
+    voiceOverlay.classList.add("hidden");
+    openOrderConfirmation({ vendorName: "", items: [], isNewVendor: true, source: "local" }, "No API key — manual entry");
+    return;
+  }
+
+  try {
+    const base64Audio = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(audioBlob);
+    });
+
+    const parsedResult = await runGeminiAudioParser(base64Audio);
+    voiceOverlay.classList.add("hidden");
+    openOrderConfirmation(parsedResult, parsedResult._transcript || "");
+  } catch (err) {
+    console.error("Audio processing failed:", err);
+    voiceStatusText.textContent = "Processing failed. Try again.";
+    voiceTranscriptPreview.textContent = err.message;
+  }
 }
 
 // ----------------------
@@ -1840,50 +1905,44 @@ function runLocalFallbackParser(transcript) {
   };
 }
 
-// Call Google Gemini API
-async function runGeminiParser(transcript) {
+// Call Google Gemini API with raw audio (STT + parsing in one shot)
+async function runGeminiAudioParser(base64Audio) {
   if (!appState.apiKey) {
     throw new Error("No API key configured");
   }
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${appState.apiKey}`;
-  
-  const systemInstructions = `
-You are an AI order processing parser for "Union Packages", a B2B food service disposable products distributor in Vijayawada.
-You will extract the vendor name and ordered inventory items from speech transcripts (which might be in English, Telugu, or mixed Tanglish/Telugu-English).
 
-Available Vendors List (dynamic):
+  const prompt = `You are an AI order processor for "Union Packages", a B2B disposable products distributor in Vijayawada, India.
+
+Listen to this audio recording of a vendor placing an order. The speech may be in English, Telugu, or mixed Tanglish. There may be background noise — focus on the order content.
+
+Available Vendors:
 ${JSON.stringify(appState.vendors.map(v => v.name))}
 
-Available Product Inventory List (dynamic):
+Available Products:
 ${JSON.stringify(appState.inventory.map(i => i.name))}
 
-Matching Instructions:
-1. Fuzzy-match the vendor name to the closest one in the Vendors List. Prefer an existing vendor even when pronunciation is imperfect. Only set "isNewVendor" to true when the user clearly says this is a new vendor.
-2. Fuzzy-match the items to the Product Inventory List. 
-3. Convert all Telugu number terms to digits: "okati"/"oka"->1, "rendu"/"render"->2, "moodu"->3, "nalugu"->4, "aidu"->5, "aaru"->6, "edu"->7, "enimidi"->8, "tommidi"->9, "padi"->10.
-4. Output strict JSON containing ONLY the properties: "vendorName" (string), "isNewVendor" (boolean), and "items" (array of objects with "name" and "qty"). Do not write any markdown blocks.
-
-Examples:
-- Speech: "Araku Biryani ki three plates bundles and okati spoons"
-  Output: {"vendorName": "Araku Biryani", "isNewVendor": false, "items": [{"name": "Buffey Plates", "qty": 3}, {"name": "Plastic Spoons", "qty": 1}]}
-- Speech: "add new vendor street food corner with 2 boxes tissues"
-  Output: {"vendorName": "Street Food Corner", "isNewVendor": true, "items": [{"name": "Tissues", "qty": 2}]}
-- Speech: "Thindhamra Mama 5 paper cups packs"
-  Output: {"vendorName": "Thindhamra Mama", "isNewVendor": false, "items": [{"name": "Paper Cups", "qty": 5}]}
-`;
+Instructions:
+1. Transcribe the full audio first (store in "transcript" field).
+2. Fuzzy-match the vendor name to the closest one in the Vendors List. Only set isNewVendor=true if they clearly say it's a new vendor.
+3. Fuzzy-match each product mentioned to the Products list.
+4. Convert Telugu numbers: okati/oka=1, rendu=2, moodu=3, nalugu=4, aidu=5, aaru=6, edu=7, enimidi=8, tommidi=9, padi=10.
+5. Return ONLY a JSON object with these exact fields, no markdown:
+{"transcript": "...", "vendorName": "...", "isNewVendor": false, "items": [{"name": "...", "qty": 1}]}`;
 
   const payload = {
     contents: [{
-      parts: [{
-        text: `Parse the following speech transcript:\n"${transcript}"`
-      }]
+      parts: [
+        {
+          inline_data: {
+            mime_type: "audio/webm",
+            data: base64Audio
+          }
+        },
+        { text: prompt }
+      ]
     }],
-    systemInstruction: {
-      parts: [{
-        text: systemInstructions
-      }]
-    },
     generationConfig: {
       responseMimeType: "application/json",
       temperature: 0.1
@@ -1892,25 +1951,24 @@ Examples:
 
   const response = await fetch(endpoint, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
 
   if (!response.ok) {
     const errorDetails = await response.text();
-    throw new Error(`Gemini API Error: Status ${response.status} - ${errorDetails}`);
+    throw new Error(`Gemini API Error: ${response.status} - ${errorDetails}`);
   }
 
   const result = await response.json();
   const jsonText = result.candidates[0].content.parts[0].text;
-  
-  const parsedData = JSON.parse(jsonText);
+  const parsedData = JSON.parse(jsonText.replace(/```json|```/g, "").trim());
+
   return {
     vendorName: parsedData.vendorName || "",
     items: parsedData.items || [],
     isNewVendor: !!parsedData.isNewVendor,
+    _transcript: parsedData.transcript || "",
     source: "gemini"
   };
 }
@@ -2046,29 +2104,7 @@ function recalculateConfirmationTotals() {
   confirmTotalSp.textContent = `₹${totalSp}`;
 }
 
-async function processSpeechTranscript(transcript) {
-  if (!transcript || transcript.trim().length === 0) {
-    alert("No speech transcript recorded!");
-    return;
-  }
-
-  let parsedResult = null;
-  
-  if (appState.apiKey) {
-    voiceStatusText.textContent = "Processing voice patterns with Gemini...";
-    try {
-      parsedResult = await runGeminiParser(transcript);
-    } catch (err) {
-      console.warn("Gemini API parsing failed, falling back to local:", err);
-      parsedResult = runLocalFallbackParser(transcript);
-    }
-  } else {
-    parsedResult = runLocalFallbackParser(transcript);
-  }
-
-  voiceOverlay.classList.add("hidden");
-  openOrderConfirmation(parsedResult, transcript);
-}
+// processSpeechTranscript removed — audio now sent directly to Gemini via processAudioBlob()
 
 // ----------------------
 // EVENT BINDINGS
@@ -2097,7 +2133,7 @@ saveSettingsBtn.addEventListener("click", async () => {
     apiSaveFeedback.style.color = "#f97316";
   }
   settingsModal.classList.add("hidden");
-  await renderAll();
+  renderAll();
 });
 
 defaultResetBtn.addEventListener("click", () => {
@@ -2124,33 +2160,24 @@ analyticsMonthSelect.addEventListener("change", () => {
 
 // Toggle Voice Modal
 voiceTriggerBtn.addEventListener("click", () => {
-  if (!recognition) {
-    alert("Speech recognition is not supported on this browser/device. You can still use manual entry.");
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert("Microphone not supported on this browser. You can still use manual entry.");
     openOrderConfirmation({ vendorName: "", items: [], isNewVendor: true, source: "local" }, "Manual Entry");
     return;
   }
-  
+
   voiceOverlay.classList.remove("hidden");
-  try {
-    recognition.start();
-  } catch (err) {
-    console.error("Failed to start Speech Recognition:", err);
-  }
+  startAudioRecording();
 });
 
 voiceCancelBtn.addEventListener("click", () => {
-  if (recognition) {
-    recognition.abort();
-  }
+  abortAudioRecording();
   voiceOverlay.classList.add("hidden");
 });
 
 voiceStopBtn.addEventListener("click", () => {
-  if (recognition) {
-    recognition.stop();
-  }
-  const transcript = voiceTranscriptPreview.textContent;
-  processSpeechTranscript(transcript);
+  stopAudioRecording();
+  // onstop handler takes over from here
 });
 
 // Confirmation Modal bindings
