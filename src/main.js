@@ -1034,7 +1034,7 @@ function renderVendorsList(filterQuery = "") {
     if (vendor.orders && vendor.orders.length > 0) {
       ordersMarkup = `
         <div class="vendor-orders-list">
-          ${vendor.orders.map(order => `
+          ${vendor.orders.map((order, orderIdx) => `
             <div class="order-item-row">
               <div class="item-name-qty">
                 <span class="item-name">${order.itemName}</span>
@@ -1043,6 +1043,7 @@ function renderVendorsList(filterQuery = "") {
               <div class="item-prices-sub">
                 <span class="item-unit-price">@ ₹${order.sp}</span>
                 <span class="item-total-price">₹${order.sp * order.quantity}</span>
+                <button class="remove-order-item-btn" data-vendor="${originalIndex}" data-order="${orderIdx}" title="Remove returned item">✕</button>
               </div>
             </div>
           `).join("")}
@@ -1156,6 +1157,34 @@ function renderVendorsList(filterQuery = "") {
   document.querySelectorAll(".vendor-log-link").forEach(btn => {
     btn.addEventListener("click", () => {
       renderVendorLogs(parseInt(btn.getAttribute("data-index")));
+    });
+  });
+
+  // Remove returned item from vendor order
+  document.querySelectorAll(".remove-order-item-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const vendorIdx = parseInt(btn.getAttribute("data-vendor"));
+      const orderIdx = parseInt(btn.getAttribute("data-order"));
+      const vendor = appState.vendors[vendorIdx];
+      const removed = vendor.orders[orderIdx];
+
+      if (!confirm(`Remove "${removed.itemName} x${removed.quantity}" from ${vendor.name}'s order?`)) return;
+
+      // Restore stock
+      const invItem = appState.inventory.find(i => i.name === removed.itemName);
+      if (invItem) invItem.stock += removed.quantity;
+
+      // Subtract from due
+      vendor.due = Math.max(0, vendor.due - (removed.sp * removed.quantity));
+
+      // Remove the order entry
+      vendor.orders.splice(orderIdx, 1);
+      vendor.lastUpdated = Date.now();
+
+      saveStore().catch(console.error);
+      renderVendorsList(searchInput.value);
+      updateDashboardMetrics();
     });
   });
 }
