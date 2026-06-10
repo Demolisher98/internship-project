@@ -1218,144 +1218,278 @@ async function generateAndShareBill(vendorIdx) {
     return;
   }
 
+  // ── Layout constants ──────────────────────────────────────
+  const W        = 640;
+  const PAD      = 40;
+  const HEADER_H = 160;  // logo + address + date
+  const BILL_H   = 80;   // "DAILY BILL FOR" + vendor name
+  const COL_H    = 36;   // column header row
+  const ROW_H    = 56;   // each item row
+  const DIV_H    = 20;   // thin divider gap
+  const SUB_H    = 52;   // subtotal row
+  const TOT_H    = 72;   // TODAY'S TOTAL box
+  const DUE_H    = 84;   // OUTSTANDING DUE box
+  const FOOT_H   = 60;   // footer text
+
+  const itemCount = vendor.orders.length;
+  const H = HEADER_H + BILL_H + COL_H + itemCount * ROW_H + DIV_H + SUB_H + TOT_H + DUE_H + FOOT_H;
+
   const canvas = document.createElement("canvas");
-  const W = 600;
-  const HEADER = 120;
-  const ROW_H = 44;
-  const FOOTER = 100;
-  const PADDING = 32;
-  canvas.width = W;
-  canvas.height = HEADER + vendor.orders.length * ROW_H + FOOTER;
-
+  canvas.width  = W;
+  canvas.height = H;
   const ctx = canvas.getContext("2d");
-  const isDark = document.body.classList.contains("dark-mode");
 
-  // Background
-  ctx.fillStyle = isDark ? "#1a1a2e" : "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // ── Colours ───────────────────────────────────────────────
+  const BG       = "#0d1f2d";   // deep navy
+  const SURFACE  = "#162533";   // slightly lighter navy for rows
+  const TEAL     = "#4ecdc4";   // accent teal (headings, icons, labels)
+  const GOLD     = "#c9a84c";   // gold (vendor name, totals)
+  const WHITE    = "#f0f4f8";
+  const MUTED    = "#7a9bb5";
+  const DIVIDER  = "#1e3448";
+  const DUE_BG   = "#162030";
 
-  // Header bar
-  ctx.fillStyle = "#16a34a";
-  ctx.fillRect(0, 0, W, 80);
+  // helpers
+  function roundRect(x, y, w, h, r, fill) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
 
-  // Logo / title
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 22px system-ui, sans-serif";
-  ctx.fillText("Union Packages", PADDING, 34);
+  // ── Full background ───────────────────────────────────────
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── HEADER ────────────────────────────────────────────────
+  let y = 0;
+
+  // Infinity logo (∞) top right
+  ctx.fillStyle = GOLD;
+  ctx.font = "bold 44px serif";
+  ctx.textAlign = "right";
+  ctx.fillText("∞", W - PAD, y + 56);
+  ctx.textAlign = "left";
+
+  // Brand name
+  ctx.fillStyle = TEAL;
+  ctx.font = "bold 28px system-ui, sans-serif";
+  ctx.letterSpacing = "4px";
+  ctx.fillText("AEONIAN", PAD, y + 46);
+
+  ctx.fillStyle = MUTED;
+  ctx.font = "600 13px system-ui, sans-serif";
+  ctx.fillText("P A C K A G E S", PAD, y + 66);
+
+  // Tagline + address
+  ctx.fillStyle = MUTED;
   ctx.font = "13px system-ui, sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.fillText("Eat Street, Vijayawada", PADDING, 56);
+  ctx.fillText("B2B Disposable Solutions", PAD, y + 94);
+  ctx.fillText("Eat Street, Vijayawada, India", PAD, y + 112);
 
   // Date top right
-  const dateStr = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-  ctx.font = "12px system-ui, sans-serif";
+  const dateStr = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  ctx.fillStyle = MUTED;
+  ctx.font = "13px system-ui, sans-serif";
   ctx.textAlign = "right";
-  ctx.fillText(dateStr, W - PADDING, 34);
+  ctx.fillText(dateStr, W - PAD, y + 112);
   ctx.textAlign = "left";
 
-  // Vendor name
-  ctx.fillStyle = isDark ? "#f1f5f9" : "#111827";
-  ctx.font = "bold 16px system-ui, sans-serif";
-  ctx.fillText(`Bill for: ${vendor.name}`, PADDING, 108);
-
-  // Column headers
-  let y = HEADER + 8;
-  ctx.fillStyle = isDark ? "#94a3b8" : "#6b7280";
-  ctx.font = "11px system-ui, sans-serif";
-  ctx.fillText("ITEM", PADDING, y);
-  ctx.textAlign = "center";
-  ctx.fillText("QTY", W / 2, y);
-  ctx.textAlign = "right";
-  ctx.fillText("AMOUNT", W - PADDING, y);
-  ctx.textAlign = "left";
-  y += 6;
-
-  // Divider
-  ctx.strokeStyle = isDark ? "#334155" : "#e5e7eb";
+  // Gold divider line
+  ctx.strokeStyle = GOLD;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(PADDING, y);
-  ctx.lineTo(W - PADDING, y);
+  ctx.moveTo(PAD, y + 130);
+  ctx.lineTo(W - PAD, y + 130);
   ctx.stroke();
-  y += 10;
 
-  // Order rows
+  y += HEADER_H;
+
+  // ── DAILY BILL FOR + vendor name ──────────────────────────
+  ctx.fillStyle = TEAL;
+  ctx.font = "600 13px system-ui, sans-serif";
+  ctx.fillText("DAILY BILL FOR", PAD, y + 22);
+
+  ctx.fillStyle = GOLD;
+  ctx.font = "bold 30px system-ui, sans-serif";
+  ctx.fillText(vendor.name, PAD, y + 58);
+
+  // Small gold underline
+  ctx.strokeStyle = GOLD;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(PAD, y + 66);
+  ctx.lineTo(PAD + 40, y + 66);
+  ctx.stroke();
+
+  y += BILL_H;
+
+  // ── COLUMN HEADERS ────────────────────────────────────────
+  ctx.fillStyle = MUTED;
+  ctx.font = "700 11px system-ui, sans-serif";
+  ctx.fillText("ITEM", PAD + 36, y + 22);
+
+  const QTY_X    = W * 0.60;
+  const PRICE_X  = W * 0.73;
+  const AMT_X    = W - PAD;
+
+  ctx.textAlign = "center";
+  ctx.fillText("QTY",     QTY_X,   y + 22);
+  ctx.fillText("U/PRICE", PRICE_X, y + 22);
+  ctx.textAlign = "right";
+  ctx.fillText("AMOUNT",  AMT_X,   y + 22);
+  ctx.textAlign = "left";
+
+  y += COL_H;
+
+  // ── ITEM ROWS ─────────────────────────────────────────────
   let totalSp = 0;
+
+  // product-type icons (unicode glyphs as simple stand-ins)
+  const iconMap = {
+    "plate":  "○", "box": "□", "tissue": "≋", "wrap": "◎",
+    "glass":  "▭", "straw": "∥", "spoon": "⌣", "fork": "⌣",
+    "bowl":   "◡", "cover": "◫", "foil": "▦", "tape": "⊓",
+    "default":"◈"
+  };
+
+  function getIcon(name) {
+    const n = name.toLowerCase();
+    for (const [key, val] of Object.entries(iconMap)) {
+      if (n.includes(key)) return val;
+    }
+    return iconMap.default;
+  }
+
   vendor.orders.forEach((order, i) => {
     const rowY = y + i * ROW_H;
-    // Alternate row bg
-    if (i % 2 === 0) {
-      ctx.fillStyle = isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)";
-      ctx.fillRect(PADDING - 8, rowY - 18, W - (PADDING - 8) * 2, ROW_H);
-    }
-    ctx.fillStyle = isDark ? "#f1f5f9" : "#111827";
+
+    // subtle row background
+    roundRect(PAD - 8, rowY, W - (PAD - 8) * 2, ROW_H - 6, 6, SURFACE);
+
+    // icon
+    ctx.fillStyle = TEAL;
+    ctx.font = "18px system-ui, sans-serif";
+    ctx.fillText(getIcon(order.itemName), PAD + 2, rowY + 26);
+
+    // item name
+    ctx.fillStyle = WHITE;
     ctx.font = "14px system-ui, sans-serif";
-    ctx.fillText(order.itemName, PADDING, rowY);
+    ctx.fillText(order.itemName, PAD + 36, rowY + 26);
 
+    // qty
+    ctx.fillStyle = WHITE;
+    ctx.font = "14px system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillStyle = isDark ? "#94a3b8" : "#6b7280";
-    ctx.fillText(`x${order.quantity}`, W / 2, rowY);
+    ctx.fillText(order.quantity, QTY_X, rowY + 26);
 
+    // unit price
+    ctx.fillStyle = MUTED;
+    ctx.font = "13px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(`${order.sp}`, PRICE_X, rowY + 26);
+
+    // line total
     const lineTotal = order.sp * order.quantity;
     totalSp += lineTotal;
-    ctx.textAlign = "right";
-    ctx.fillStyle = isDark ? "#f1f5f9" : "#111827";
+    ctx.fillStyle = WHITE;
     ctx.font = "bold 14px system-ui, sans-serif";
-    ctx.fillText(`₹${lineTotal}`, W - PADDING, rowY);
+    ctx.textAlign = "right";
+    ctx.fillText(`${lineTotal}`, AMT_X, rowY + 26);
     ctx.textAlign = "left";
   });
 
-  // Footer divider
-  const footerY = HEADER + vendor.orders.length * ROW_H + 16;
-  ctx.strokeStyle = isDark ? "#334155" : "#e5e7eb";
-  ctx.lineWidth = 1.5;
+  y += itemCount * ROW_H + DIV_H;
+
+  // ── SUBTOTAL ──────────────────────────────────────────────
+  ctx.strokeStyle = DIVIDER;
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(PADDING, footerY);
-  ctx.lineTo(W - PADDING, footerY);
+  ctx.moveTo(PAD, y);
+  ctx.lineTo(W - PAD, y);
   ctx.stroke();
 
-  // Total row
-  ctx.fillStyle = isDark ? "#94a3b8" : "#6b7280";
-  ctx.font = "13px system-ui, sans-serif";
-  ctx.fillText("Today's Total", PADDING, footerY + 26);
+  ctx.fillStyle = MUTED;
+  ctx.font = "14px system-ui, sans-serif";
+  ctx.fillText(`Subtotal (${itemCount} item${itemCount > 1 ? "s" : ""})`, PAD, y + 34);
+  ctx.fillStyle = WHITE;
+  ctx.font = "bold 14px system-ui, sans-serif";
   ctx.textAlign = "right";
-  ctx.fillStyle = "#16a34a";
-  ctx.font = "bold 20px system-ui, sans-serif";
-  ctx.fillText(`₹${totalSp}`, W - PADDING, footerY + 26);
-
-  // Due amount
-  ctx.textAlign = "left";
-  ctx.fillStyle = isDark ? "#94a3b8" : "#6b7280";
-  ctx.font = "13px system-ui, sans-serif";
-  ctx.fillText("Outstanding Due", PADDING, footerY + 52);
-  ctx.textAlign = "right";
-  ctx.fillStyle = vendor.due > 0 ? "#ef4444" : "#16a34a";
-  ctx.font = "bold 18px system-ui, sans-serif";
-  ctx.fillText(`₹${vendor.due}`, W - PADDING, footerY + 52);
+  ctx.fillText(`${totalSp}`, AMT_X, y + 34);
   ctx.textAlign = "left";
 
-  // Footer note
-  ctx.fillStyle = isDark ? "#475569" : "#9ca3af";
+  y += SUB_H;
+
+  // ── TODAY'S TOTAL box ─────────────────────────────────────
+  roundRect(PAD - 8, y, W - (PAD - 8) * 2, TOT_H - 8, 8, SURFACE);
+
+  ctx.fillStyle = TEAL;
+  ctx.font = "700 12px system-ui, sans-serif";
+  ctx.fillText("TODAY'S TOTAL", PAD + 4, y + 24);
+
+  ctx.fillStyle = GOLD;
+  ctx.font = "bold 30px system-ui, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText(`₹${totalSp}`, AMT_X, y + 54);
+  ctx.textAlign = "left";
+
+  y += TOT_H;
+
+  // ── OUTSTANDING DUE box ───────────────────────────────────
+  roundRect(PAD - 8, y, W - (PAD - 8) * 2, DUE_H - 8, 8, DUE_BG);
+
+  ctx.fillStyle = TEAL;
+  ctx.font = "700 10px system-ui, sans-serif";
+  ctx.fillText("PREVIOUS BALANCE DUE", PAD + 4, y + 20);
+
+  ctx.fillStyle = WHITE;
+  ctx.font = "700 16px system-ui, sans-serif";
+  ctx.fillText("OUTSTANDING DUE", PAD + 4, y + 44);
+
+  ctx.fillStyle = MUTED;
   ctx.font = "11px system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("Union Packages · Powered by AI · Eat Street Vijayawada", W / 2, footerY + 78);
+  ctx.fillText("(Includes this bill)", PAD + 4, y + 62);
+
+  ctx.fillStyle = vendor.due > 0 ? GOLD : TEAL;
+  ctx.font = "bold 30px system-ui, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText(`₹${vendor.due}`, AMT_X, y + 54);
   ctx.textAlign = "left";
 
-  // Share via Web Share API
+  y += DUE_H;
+
+  // ── FOOTER ────────────────────────────────────────────────
+  ctx.strokeStyle = DIVIDER;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD, y + 10);
+  ctx.lineTo(W - PAD, y + 10);
+  ctx.stroke();
+
+  ctx.fillStyle = MUTED;
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText("Aeonian Packages – High-Quality Disposables", PAD, y + 32);
+  ctx.fillText("for Eat Street, Vijayawada.", PAD, y + 50);
+
+  // ── SHARE ─────────────────────────────────────────────────
   canvas.toBlob(async (blob) => {
     const file = new File([blob], `bill-${vendor.name}-${Date.now()}.png`, { type: "image/png" });
-
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
-        await navigator.share({
-          files: [file],
-          title: `Bill for ${vendor.name}`,
-        });
+        await navigator.share({ files: [file], title: `Bill for ${vendor.name}` });
       } catch (err) {
         if (err.name !== "AbortError") console.error("Share failed:", err);
       }
     } else {
-      // Fallback: download the image
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
