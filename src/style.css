@@ -540,6 +540,24 @@ body {
   color: var(--text-main);
 }
 
+.send-bill-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.send-bill-btn:hover {
+  opacity: 0.88;
+}
+
 .remove-order-item-btn {
   background: none;
   border: none;

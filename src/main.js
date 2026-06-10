@@ -1034,7 +1034,7 @@ function renderVendorsList(filterQuery = "") {
     if (vendor.orders && vendor.orders.length > 0) {
       ordersMarkup = `
         <div class="vendor-orders-list">
-          ${vendor.orders.map(order => `
+          ${vendor.orders.map((order, orderIdx) => `
             <div class="order-item-row">
               <div class="item-name-qty">
                 <span class="item-name">${order.itemName}</span>
@@ -1043,6 +1043,7 @@ function renderVendorsList(filterQuery = "") {
               <div class="item-prices-sub">
                 <span class="item-unit-price">@ ₹${order.sp}</span>
                 <span class="item-total-price">₹${order.sp * order.quantity}</span>
+                <button class="remove-order-item-btn" data-vendor="${originalIndex}" data-order="${orderIdx}" title="Remove returned item">✕</button>
               </div>
             </div>
           `).join("")}
@@ -1113,6 +1114,7 @@ function renderVendorsList(filterQuery = "") {
         </div>
       </div>
       <button class="vendor-log-link" data-index="${originalIndex}">View month/day logs</button>
+      <button class="send-bill-btn" data-index="${originalIndex}">📲 Send Bill</button>
     `;
 
     vendorsContainer.appendChild(card);
@@ -1174,6 +1176,194 @@ function renderVendorsList(filterQuery = "") {
       renderVendorLogs(parseInt(btn.getAttribute("data-index")));
     });
   });
+
+  // Remove returned item from vendor order
+  document.querySelectorAll(".remove-order-item-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const vendorIdx = parseInt(btn.getAttribute("data-vendor"));
+      const orderIdx = parseInt(btn.getAttribute("data-order"));
+      const vendor = appState.vendors[vendorIdx];
+      const removed = vendor.orders[orderIdx];
+      if (!confirm(`Remove "${removed.itemName} x${removed.quantity}" from ${vendor.name}'s order?`)) return;
+      const invItem = appState.inventory.find(i => i.name === removed.itemName);
+      if (invItem) invItem.stock += removed.quantity;
+      vendor.due = Math.max(0, vendor.due - (removed.sp * removed.quantity));
+      vendor.orders.splice(orderIdx, 1);
+      vendor.lastUpdated = Date.now();
+      saveStore().catch(console.error);
+      renderVendorsList(searchInput.value);
+      updateDashboardMetrics();
+    });
+  });
+
+  // Send WhatsApp bill
+  document.querySelectorAll(".send-bill-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const vendorIdx = parseInt(btn.getAttribute("data-index"));
+      generateAndShareBill(vendorIdx);
+    });
+  });
+}
+
+// ----------------------
+// WHATSAPP BILL GENERATOR
+// ----------------------
+async function generateAndShareBill(vendorIdx) {
+  const vendor = appState.vendors[vendorIdx];
+
+  if (!vendor.orders || vendor.orders.length === 0) {
+    alert(`No orders for ${vendor.name} today.`);
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  const W = 600;
+  const HEADER = 120;
+  const ROW_H = 44;
+  const FOOTER = 100;
+  const PADDING = 32;
+  canvas.width = W;
+  canvas.height = HEADER + vendor.orders.length * ROW_H + FOOTER;
+
+  const ctx = canvas.getContext("2d");
+  const isDark = document.body.classList.contains("dark-mode");
+
+  // Background
+  ctx.fillStyle = isDark ? "#1a1a2e" : "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Header bar
+  ctx.fillStyle = "#16a34a";
+  ctx.fillRect(0, 0, W, 80);
+
+  // Logo / title
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 22px system-ui, sans-serif";
+  ctx.fillText("Union Packages", PADDING, 34);
+  ctx.font = "13px system-ui, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fillText("Eat Street, Vijayawada", PADDING, 56);
+
+  // Date top right
+  const dateStr = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText(dateStr, W - PADDING, 34);
+  ctx.textAlign = "left";
+
+  // Vendor name
+  ctx.fillStyle = isDark ? "#f1f5f9" : "#111827";
+  ctx.font = "bold 16px system-ui, sans-serif";
+  ctx.fillText(`Bill for: ${vendor.name}`, PADDING, 108);
+
+  // Column headers
+  let y = HEADER + 8;
+  ctx.fillStyle = isDark ? "#94a3b8" : "#6b7280";
+  ctx.font = "11px system-ui, sans-serif";
+  ctx.fillText("ITEM", PADDING, y);
+  ctx.textAlign = "center";
+  ctx.fillText("QTY", W / 2, y);
+  ctx.textAlign = "right";
+  ctx.fillText("AMOUNT", W - PADDING, y);
+  ctx.textAlign = "left";
+  y += 6;
+
+  // Divider
+  ctx.strokeStyle = isDark ? "#334155" : "#e5e7eb";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PADDING, y);
+  ctx.lineTo(W - PADDING, y);
+  ctx.stroke();
+  y += 10;
+
+  // Order rows
+  let totalSp = 0;
+  vendor.orders.forEach((order, i) => {
+    const rowY = y + i * ROW_H;
+    // Alternate row bg
+    if (i % 2 === 0) {
+      ctx.fillStyle = isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)";
+      ctx.fillRect(PADDING - 8, rowY - 18, W - (PADDING - 8) * 2, ROW_H);
+    }
+    ctx.fillStyle = isDark ? "#f1f5f9" : "#111827";
+    ctx.font = "14px system-ui, sans-serif";
+    ctx.fillText(order.itemName, PADDING, rowY);
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = isDark ? "#94a3b8" : "#6b7280";
+    ctx.fillText(`x${order.quantity}`, W / 2, rowY);
+
+    const lineTotal = order.sp * order.quantity;
+    totalSp += lineTotal;
+    ctx.textAlign = "right";
+    ctx.fillStyle = isDark ? "#f1f5f9" : "#111827";
+    ctx.font = "bold 14px system-ui, sans-serif";
+    ctx.fillText(`₹${lineTotal}`, W - PADDING, rowY);
+    ctx.textAlign = "left";
+  });
+
+  // Footer divider
+  const footerY = HEADER + vendor.orders.length * ROW_H + 16;
+  ctx.strokeStyle = isDark ? "#334155" : "#e5e7eb";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(PADDING, footerY);
+  ctx.lineTo(W - PADDING, footerY);
+  ctx.stroke();
+
+  // Total row
+  ctx.fillStyle = isDark ? "#94a3b8" : "#6b7280";
+  ctx.font = "13px system-ui, sans-serif";
+  ctx.fillText("Today's Total", PADDING, footerY + 26);
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#16a34a";
+  ctx.font = "bold 20px system-ui, sans-serif";
+  ctx.fillText(`₹${totalSp}`, W - PADDING, footerY + 26);
+
+  // Due amount
+  ctx.textAlign = "left";
+  ctx.fillStyle = isDark ? "#94a3b8" : "#6b7280";
+  ctx.font = "13px system-ui, sans-serif";
+  ctx.fillText("Outstanding Due", PADDING, footerY + 52);
+  ctx.textAlign = "right";
+  ctx.fillStyle = vendor.due > 0 ? "#ef4444" : "#16a34a";
+  ctx.font = "bold 18px system-ui, sans-serif";
+  ctx.fillText(`₹${vendor.due}`, W - PADDING, footerY + 52);
+  ctx.textAlign = "left";
+
+  // Footer note
+  ctx.fillStyle = isDark ? "#475569" : "#9ca3af";
+  ctx.font = "11px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("Union Packages · Powered by AI · Eat Street Vijayawada", W / 2, footerY + 78);
+  ctx.textAlign = "left";
+
+  // Share via Web Share API
+  canvas.toBlob(async (blob) => {
+    const file = new File([blob], `bill-${vendor.name}-${Date.now()}.png`, { type: "image/png" });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: `Bill for ${vendor.name}`,
+        });
+      } catch (err) {
+        if (err.name !== "AbortError") console.error("Share failed:", err);
+      }
+    } else {
+      // Fallback: download the image
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `bill-${vendor.name}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  }, "image/png");
 }
 
 function processCollection(vendorIdx, amount) {
