@@ -557,6 +557,29 @@ body {
   color: #ef4444;
 }
 
+.vendor-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-order-btn {
+  background: var(--accent-green, #10b981);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.add-order-btn:hover {
+  opacity: 0.85;
+}
+
 /* Card Financial Row & Badge */
 .vendor-financial-summary {
   display: flex;

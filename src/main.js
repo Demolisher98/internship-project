@@ -1034,7 +1034,7 @@ function renderVendorsList(filterQuery = "") {
     if (vendor.orders && vendor.orders.length > 0) {
       ordersMarkup = `
         <div class="vendor-orders-list">
-          ${vendor.orders.map((order, orderIdx) => `
+          ${vendor.orders.map(order => `
             <div class="order-item-row">
               <div class="item-name-qty">
                 <span class="item-name">${order.itemName}</span>
@@ -1043,7 +1043,6 @@ function renderVendorsList(filterQuery = "") {
               <div class="item-prices-sub">
                 <span class="item-unit-price">@ ₹${order.sp}</span>
                 <span class="item-total-price">₹${order.sp * order.quantity}</span>
-                <button class="remove-order-item-btn" data-vendor="${originalIndex}" data-order="${orderIdx}" title="Remove returned item">✕</button>
               </div>
             </div>
           `).join("")}
@@ -1063,14 +1062,17 @@ function renderVendorsList(filterQuery = "") {
           <h2 class="vendor-title">${vendor.name}</h2>
           <div class="vendor-date">${vendor.lastUpdated > 0 ? `Updated ${new Date(vendor.lastUpdated).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 'No recent activity'}</div>
         </div>
-        <button class="delete-vendor-btn" data-index="${originalIndex}" title="Reset Dues & Orders">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            <line x1="10" y1="11" x2="10" y2="17"></line>
-            <line x1="14" y1="11" x2="14" y2="17"></line>
-          </svg>
-        </button>
+        <div class="vendor-card-actions">
+          <button class="add-order-btn" data-index="${originalIndex}" title="Add Order Manually">+ Order</button>
+          <button class="delete-vendor-btn" data-index="${originalIndex}" title="Reset Dues & Orders">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </button>
+        </div>
       </div>
 
       ${ordersMarkup}
@@ -1116,6 +1118,19 @@ function renderVendorsList(filterQuery = "") {
     vendorsContainer.appendChild(card);
   });
 
+  // Manual order entry per vendor card
+  document.querySelectorAll(".add-order-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.getAttribute("data-index"));
+      const vendor = appState.vendors[idx];
+      openOrderConfirmation(
+        { vendorName: vendor.name, items: [], isNewVendor: false, source: "manual" },
+        "Manual Entry"
+      );
+    });
+  });
+
   // Attach card delete action
   document.querySelectorAll(".delete-vendor-btn").forEach(btn => {
     btn.addEventListener("click", (e) => {
@@ -1157,34 +1172,6 @@ function renderVendorsList(filterQuery = "") {
   document.querySelectorAll(".vendor-log-link").forEach(btn => {
     btn.addEventListener("click", () => {
       renderVendorLogs(parseInt(btn.getAttribute("data-index")));
-    });
-  });
-
-  // Remove returned item from vendor order
-  document.querySelectorAll(".remove-order-item-btn").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const vendorIdx = parseInt(btn.getAttribute("data-vendor"));
-      const orderIdx = parseInt(btn.getAttribute("data-order"));
-      const vendor = appState.vendors[vendorIdx];
-      const removed = vendor.orders[orderIdx];
-
-      if (!confirm(`Remove "${removed.itemName} x${removed.quantity}" from ${vendor.name}'s order?`)) return;
-
-      // Restore stock
-      const invItem = appState.inventory.find(i => i.name === removed.itemName);
-      if (invItem) invItem.stock += removed.quantity;
-
-      // Subtract from due
-      vendor.due = Math.max(0, vendor.due - (removed.sp * removed.quantity));
-
-      // Remove the order entry
-      vendor.orders.splice(orderIdx, 1);
-      vendor.lastUpdated = Date.now();
-
-      saveStore().catch(console.error);
-      renderVendorsList(searchInput.value);
-      updateDashboardMetrics();
     });
   });
 }
@@ -2008,9 +1995,15 @@ Instructions:
 
 function openOrderConfirmation(parsedData, rawTranscript) {
   confirmRawTranscript.textContent = `"${rawTranscript}"`;
-  parserBadge.textContent = parsedData.source === "gemini" ? "Gemini LLM" : "Local Fallback";
-  parserBadge.style.background = parsedData.source === "gemini" ? "rgba(59, 130, 246, 0.15)" : "rgba(245, 158, 11, 0.15)";
-  parserBadge.style.color = parsedData.source === "gemini" ? "var(--accent-blue)" : "var(--accent-amber)";
+  const badgeMap = {
+    gemini: { label: "Gemini LLM", bg: "rgba(59, 130, 246, 0.15)", color: "var(--accent-blue)" },
+    manual: { label: "Manual Entry", bg: "rgba(16, 185, 129, 0.15)", color: "var(--accent-green)" },
+    local:  { label: "Local Fallback", bg: "rgba(245, 158, 11, 0.15)", color: "var(--accent-amber)" }
+  };
+  const badge = badgeMap[parsedData.source] || badgeMap.local;
+  parserBadge.textContent = badge.label;
+  parserBadge.style.background = badge.bg;
+  parserBadge.style.color = badge.color;
   
   // Reset confirmation selectors using current dynamic vendors list
   confirmVendorSelect.innerHTML = "";
