@@ -2169,6 +2169,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  min-width: 0;
 }
 
 .buy-modal-field label {
@@ -2180,6 +2181,10 @@ body {
 }
 
 .buy-modal-field input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
   padding: 11px 12px;
   background: var(--glass-04);
   border: 1px solid var(--border-color);
