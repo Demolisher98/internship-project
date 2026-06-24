@@ -300,10 +300,6 @@ const voiceTranscriptPreview = document.getElementById("voice-transcript-preview
 const voiceCancelBtn = document.getElementById("voice-cancel-btn");
 const voiceStopBtn = document.getElementById("voice-stop-btn");
 
-// Audio File Upload Hooks
-const fileUploadBtn = document.getElementById("file-upload-btn");
-const audioFileInput = document.getElementById("audio-file-input");
-
 const confirmModal = document.getElementById("confirm-modal");
 const closeConfirmBtn = document.getElementById("close-confirm-btn");
 const cancelConfirmBtn = document.getElementById("cancel-confirm-btn");
@@ -327,8 +323,6 @@ const vendorLogDateFilter = document.getElementById("vendor-log-date-filter");
 const clearVendorLogDateBtn = document.getElementById("clear-vendor-log-date-btn");
 let activeVendorLogIndex = null;
 let selectedStockLogMonth = getMonthKey(new Date());
-
-// Navigation Tabs
 
 // Navigation Tabs
 const tabButtons = document.querySelectorAll(".app-tab-bar .tab-btn");
@@ -1103,7 +1097,6 @@ function renderVendorsList(filterQuery = "") {
         </span>
       </div>
 
-      <!-- Money Collection Form -->
       <div class="collection-panel">
         <div class="collection-header">
           <span>Night Collection (10:30-11:00 PM)</span>
@@ -1551,67 +1544,6 @@ function getStockStatusLabel(stock, max) {
   }
 }
 
-// Trigger hidden file input when clicking the upload button
-fileUploadBtn.addEventListener("click", () => {
-  audioFileInput.click();
-});
-
-// Handle the selected audio file
-audioFileInput.addEventListener("change", async function(event) {
-  // ⚡ FIXED: Corrected target property chain
-  const file = event.target.files?.[0];
-  if (!file) return;
-
-  // Validate it's an audio file
-  if (!file.type.startsWith("audio/")) {
-    alert("Please upload a valid audio recording file.");
-    this.value = null; // Clear bad file selection
-    return;
-  }
-
-  // Open the voice overlay to reuse processing UI/feedback states
-  voiceOverlay.classList.remove("hidden");
-  voiceTranscriptPreview.classList.remove("placeholder-text");
-  voiceTranscriptPreview.textContent = `Reading file: ${file.name}...`;
-  voiceStatusText.textContent = "Converting audio...";
-
-  try {
-    // Read file and convert to Base64
-    const base64Audio = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      // Strip off the Data URL scheme metadata (e.g., "data:audio/mp3;base64,")
-      reader.onload = () => resolve(reader.result.split(",")[1]);
-      reader.onerror = (err) => reject(err);
-      reader.readAsDataURL(file); //
-    });
-
-    voiceTranscriptPreview.textContent = "Processing call recording parsing...";
-    voiceStatusText.textContent = "Sending to Gemini...";
-
-    // Pass the base64 string straight to your Gemini parser
-    const parsedResult = await runGeminiAudioParser(base64Audio);
-    voiceOverlay.classList.add("hidden");
-    openOrderConfirmation(parsedResult, parsedResult._transcript || `Uploaded Call Record: ${file.name}`);
-
-  } catch (err) {
-    console.error("File processing failed:", err);
-    
-    // Fallback logic to manual entry window on error/timeout
-    voiceStatusText.textContent = "API busy/error. Opening manual entry...";
-    voiceTranscriptPreview.textContent = err.message;
-    
-    setTimeout(() => {
-      voiceOverlay.classList.add("hidden");
-      openOrderConfirmation(
-        { vendorName: "", items: [], isNewVendor: true, source: "manual" }, 
-        `Upload Override Failed — ${file.name}`
-      );
-    }, 1200);
-  } finally {
-    // Reset input value so the same file name can be uploaded back-to-back safely
-    this.value = null;
-  }
-});
 function renderStockTabList() {
   tabInventoryList.innerHTML = "";
   if (appState.inventory.length === 0) {
@@ -2208,7 +2140,6 @@ function parseWordToNumber(word) {
 }
 
 // Fallback pattern matching engine
-// Fallback pattern matching engine
 function runLocalFallbackParser(transcript) {
   const text = transcript.toLowerCase();
   let matchedVendor = "";
@@ -2259,7 +2190,7 @@ function runLocalFallbackParser(transcript) {
     matchedVendor = bestMatch.name;
   }
 
-  // 2. Parse products and quantities (Unchanged)
+  // 2. Parse products and quantities
   const quantityRegexStr = "(\\d+|one|two|three|four|five|six|seven|eight|nine|ten|okati|oka|rendu|render|moodu|nalugu|aidu)";
   
   appState.inventory.forEach(item => {
@@ -2526,8 +2457,6 @@ function recalculateConfirmationTotals() {
   confirmTotalSp.textContent = `₹${totalSp}`;
 }
 
-// processSpeechTranscript removed — audio now sent directly to Gemini via processAudioBlob()
-
 // ----------------------
 // EVENT BINDINGS
 // ----------------------
@@ -2777,3 +2706,93 @@ async function renderAll() {
 }
 
 renderAll();
+
+
+// ============================================================
+// CALL RECORDING FILE UPLOAD INTEGRATION
+// ============================================================
+
+// Wrap inside a DOMContentLoaded safety check or execute directly 
+// near your other voice overlay controls
+setTimeout(() => {
+  const fileUploadBtn = document.getElementById("file-upload-btn");
+  const audioFileInput = document.getElementById("audio-file-input");
+
+  if (!fileUploadBtn || !audioFileInput) {
+    console.error("❌ Audio upload DOM elements missing! Check your HTML IDs.");
+    return;
+  }
+
+  console.log("🚀 Call recording upload event listeners successfully initialized.");
+
+  // 1. Trigger the native hidden file browser panel
+  fileUploadBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    console.log("📂 Upload button clicked. Opening device file picker...");
+    audioFileInput.click();
+  });
+
+  // 2. Process the chosen file stream
+  audioFileInput.addEventListener("change", async function(event) {
+    console.log("🗂️ Change event captured on file input element.");
+    
+    const file = event.target.files?.[0];
+    if (!file) {
+      console.warn("⚠️ File picker opened, but no file was selected.");
+      return;
+    }
+
+    console.log(`🎵 File selected: ${file.name} | Type: ${file.type} | Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+
+    // Open the processing UI overlay instantly so the user knows something is happening
+    const voiceOverlay = document.getElementById("voice-overlay");
+    const voiceTranscriptPreview = document.getElementById("voice-transcript-preview");
+    const voiceStatusText = document.getElementById("voice-status-text");
+
+    if (voiceOverlay) voiceOverlay.classList.remove("hidden");
+    if (voiceTranscriptPreview) {
+      voiceTranscriptPreview.classList.remove("placeholder-text");
+      voiceTranscriptPreview.textContent = `Reading call clip: ${file.name}...`;
+    }
+    if (voiceStatusText) voiceStatusText.textContent = "Converting audio stream...";
+
+    try {
+      console.log("⏳ Converting raw file into base64 format...");
+      const base64Audio = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(",")[1]);
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(file);
+      });
+
+      console.log("📡 Base64 conversion complete. Dispatching payload directly to Gemini API parser...");
+      if (voiceTranscriptPreview) voiceTranscriptPreview.textContent = "Parsing transaction details with LLM engine...";
+      if (voiceStatusText) voiceStatusText.textContent = "Sending to Gemini...";
+
+      const parsedResult = await runGeminiAudioParser(base64Audio);
+      
+      console.log("✅ Gemini API responded successfully:", parsedResult);
+      if (voiceOverlay) voiceOverlay.classList.add("hidden");
+      
+      openOrderConfirmation(parsedResult, parsedResult._transcript || `Call file: ${file.name}`);
+
+    } catch (err) {
+      console.error("❌ File parsing or API transmission failed:", err);
+      
+      if (voiceStatusText) voiceStatusText.textContent = "API error. Switching to manual override...";
+      if (voiceTranscriptPreview) voiceTranscriptPreview.textContent = err.message;
+      
+      setTimeout(() => {
+        if (voiceOverlay) voiceOverlay.classList.add("hidden");
+        openOrderConfirmation(
+          { vendorName: "", items: [], isNewVendor: true, source: "manual" }, 
+          `Audio Pipeline Fail — ${file.name}`
+        );
+      }, 1500);
+    } finally {
+      // Clear out the tracking string value so the change mechanism triggers again back-to-back
+      this.value = null;
+      console.log("🧹 Input stream flushed and ready for next file.");
+    }
+  });
+}, 500); // 500ms delay ensures Firestore/App state rendering scripts finish first
