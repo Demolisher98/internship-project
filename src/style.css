@@ -778,108 +778,6 @@ body {
   text-decoration: underline;
 }
 
-/* Floating Microphone Action Button & Blob Effect[cite: 1] */
-.floating-voice-btn {
-  position: absolute;
-  right: 20px;
-  bottom: 80px;
-  width: 66px;
-  height: 66px;
-  border-radius: 50%;
-  border: none;
-  background: var(--accent-blue-gradient);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--shadow-glow), 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  z-index: 15;
-}
-
-/* Floating animated blob behind the button */
-/* Locate this block in style.css and update it */
-.floating-voice-btn::before {
-  content: '';
-  position: absolute;
-  
-  /* Lock sizing to match the 66px parent button frame exactly */
-  top: 0; 
-  left: 0;
-  width: 66px; 
-  height: 66px;
-  
-  /* Soft pink to blue fluid gradient blend */
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.6) 0%, rgba(59, 130, 246, 0.6) 100%);
-  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-  z-index: -1;
-  
-  /* Retain smooth loop properties */
-  animation: morphBlob 5s ease-in-out infinite alternate;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-
-.floating-voice-btn:hover::before {
-  /* Increases the brightness/opacity of the gradient on hover */
-  opacity: 0.9;
-}
-
-.floating-voice-btn:hover {
-  transform: scale(1.06);
-  box-shadow: 0 0 25px rgba(246, 59, 165, 0.65);
-}
-
-.floating-voice-btn:hover::before {
-  background: rgba(59, 130, 246, 0.45);
-}
-
-.floating-voice-btn:active {
-  transform: scale(0.94);
-}
-
-/* Upgraded icon presence */
-.mic-icon {
-  width: 28px;
-  height: 28px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
-  z-index: 2;
-}
-
-/* Pseudo-random fluid blob animation */
-@keyframes morphBlob {
-  0% {
-    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-    transform: rotate(0deg) scale(0.95);
-  }
-  17% {
-    border-radius: 65% 35% 55% 45% / 55% 45% 35% 65%;
-    transform: rotate(45deg) scale(1.02);
-  }
-  34% {
-    border-radius: 30% 70% 40% 60% / 45% 55% 65% 35%;
-    transform: rotate(115deg) scale(0.98);
-  }
-  51% {
-    border-radius: 70% 30% 50% 50% / 30% 40% 70% 60%;
-    transform: rotate(180deg) scale(1.07);
-  }
-  68% {
-    border-radius: 25% 75% 60% 40% / 65% 35% 45% 55%;
-    transform: rotate(260deg) scale(0.96);
-  }
-  85% {
-    border-radius: 50% 50% 30% 70% / 60% 30% 70% 40%;
-    transform: rotate(315deg) scale(1.04);
-  }
-  100% {
-    /* Must perfectly match 0% for a seamless infinite loop */
-    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-    transform: rotate(360deg) scale(0.95);
-  }
-}
-
 /* STOCK TAB STYLES */
 .padding-20 {
   padding: 8px 20px 20px 20px;
@@ -2310,56 +2208,83 @@ body {
 }
 
 /* ============================================================
-   FLOATING AUDIO INTERACTIONS GROUP
+   FLOATING AUDIO INTERACTIONS GROUP (CLEAN DESIGN)
    ============================================================ */
 
-/* Wrapper layout housing both the upload indicator and mic button stacked */
-/* Wrapper layout housing both the upload indicator and mic button stacked */
+/* ============================================================
+   FLOATING AUDIO INTERACTIONS GROUP (CLEAN DESIGN)
+   ============================================================ */
+
 .audio-actions-group {
-  position: absolute; /* Changed from fixed to absolute to lock inside #app */
-  bottom: 80px;       /* Sitting comfortably right above the bottom tab bar */
-  right: 20px;        /* Pinned to the right margin of the app frame */
+  position: absolute;
+  bottom: 80px;       /* Anchored cleanly directly above the bottom tab nav bar */
+  right: 20px;        /* Consistent right padding inside the app container */
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;          /* Clean stacked vertical spacing */
   align-items: center;
   z-index: 99;
 }
 
-/* Call recording upload variations aligning with system design layout colors */
-.floating-upload-btn {
-  width: 48px;
-  height: 48px;
+.floating-upload-btn,
+.floating-voice-btn {
+  border: none;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
   cursor: pointer;
+  box-shadow: var(--shadow-md), 0 4px 10px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              background-color 0.2s ease, 
+              box-shadow 0.2s ease,
+              border-color 0.2s ease;
+  
+  /* Shared default light mode styling to match the file upload button appearance */
   background-color: var(--bg-surface-solid);
   color: var(--accent-blue);
-  box-shadow: var(--shadow-md), 0 4px 10px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Micro-interactions handling smooth scaling feedback */
-.floating-upload-btn:hover {
-  transform: scale(1.08);
-  background-color: var(--body-bg);
-  color: var(--accent-blue);
-}
-
-.floating-upload-btn:active {
-  transform: scale(0.95);
-}
-
-/* Dark mode theme adjustments for high contrast */
-body.dark-mode .floating-upload-btn {
-  background-color: #111827; /* Dark surface match color background */
-  color: #4ecdc4;            /* Soft accent teal variable definition matching custom HTML inline markup */
   border: 1px solid var(--border-color);
 }
 
-body.dark-mode .floating-upload-btn:hover {
+/* Call Recording Upload Button layout dimensions */
+.floating-upload-btn {
+  width: 46px;
+  height: 46px;
+}
+
+/* Standard Voice Microphone Trigger Button layout dimensions */
+.floating-voice-btn {
+  width: 56px;
+  height: 56px;
+}
+
+/* Upgraded icon matching context */
+.mic-icon {
+  width: 22px;
+  height: 22px;
+}
+
+/* Clean UI micro-interactions handling hover scale scaling safely */
+.floating-upload-btn:hover,
+.floating-voice-btn:hover {
+  transform: scale(1.05);
+  background-color: var(--bg-dark);
+}
+
+.floating-upload-btn:active,
+.floating-voice-btn:active {
+  transform: scale(0.95);
+}
+
+/* Dark Mode Color Consistency Adjustments */
+body.dark-mode .floating-upload-btn,
+body.dark-mode .floating-voice-btn {
+  background-color: #111827; 
+  color: #4ecdc4;            /* Matches soft accent teal styling palette */
+  border: 1px solid var(--border-color);
+}
+
+body.dark-mode .floating-upload-btn:hover,
+body.dark-mode .floating-voice-btn:hover {
   background-color: #162533;
 }
