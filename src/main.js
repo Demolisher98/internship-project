@@ -1557,17 +1557,19 @@ fileUploadBtn.addEventListener("click", () => {
 });
 
 // Handle the selected audio file
-audioFileInput.addEventListener("change", async (event) => {
-  const file = event.targetFiles?.[0];
+audioFileInput.addEventListener("change", async function(event) {
+  // ⚡ FIXED: Corrected target property chain
+  const file = event.target.files?.[0];
   if (!file) return;
 
   // Validate it's an audio file
   if (!file.type.startsWith("audio/")) {
     alert("Please upload a valid audio recording file.");
+    this.value = null; // Clear bad file selection
     return;
   }
 
-  // Open the voice overlay to reuse your existing processing UI/feedback states
+  // Open the voice overlay to reuse processing UI/feedback states
   voiceOverlay.classList.remove("hidden");
   voiceTranscriptPreview.classList.remove("placeholder-text");
   voiceTranscriptPreview.textContent = `Reading file: ${file.name}...`;
@@ -1580,13 +1582,13 @@ audioFileInput.addEventListener("change", async (event) => {
       // Strip off the Data URL scheme metadata (e.g., "data:audio/mp3;base64,")
       reader.onload = () => resolve(reader.result.split(",")[1]);
       reader.onerror = (err) => reject(err);
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(file); //
     });
 
     voiceTranscriptPreview.textContent = "Processing call recording parsing...";
     voiceStatusText.textContent = "Sending to Gemini...";
 
-    // Pass the base64 string straight to the Gemini parser
+    // Pass the base64 string straight to your Gemini parser
     const parsedResult = await runGeminiAudioParser(base64Audio);
     voiceOverlay.classList.add("hidden");
     openOrderConfirmation(parsedResult, parsedResult._transcript || `Uploaded Call Record: ${file.name}`);
@@ -1606,11 +1608,10 @@ audioFileInput.addEventListener("change", async (event) => {
       );
     }, 1200);
   } finally {
-    // Reset input value so the same file can be uploaded back-to-back if needed
-    audioFileInput.value = "";
+    // Reset input value so the same file name can be uploaded back-to-back safely
+    this.value = null;
   }
 });
-
 function renderStockTabList() {
   tabInventoryList.innerHTML = "";
   if (appState.inventory.length === 0) {
