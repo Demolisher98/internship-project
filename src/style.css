@@ -2306,3 +2306,57 @@ body {
   font-weight: 700;
   letter-spacing: 0.2px;
 }
+
+/* ============================================================
+   FLOATING AUDIO INTERACTIONS GROUP
+   ============================================================ */
+
+/* Wrapper layout housing both the upload indicator and mic button stacked */
+.audio-actions-group {
+  position: fixed;
+  bottom: 84px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  z-index: 99;
+}
+
+/* Call recording upload variations aligning with system design layout colors */
+.floating-upload-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  background-color: var(--bg-surface-solid);
+  color: var(--accent-blue);
+  box-shadow: var(--shadow-md), 0 4px 10px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Micro-interactions handling smooth scaling feedback */
+.floating-upload-btn:hover {
+  transform: scale(1.08);
+  background-color: var(--body-bg);
+  color: var(--accent-blue);
+}
+
+.floating-upload-btn:active {
+  transform: scale(0.95);
+}
+
+/* Dark mode theme adjustments for high contrast */
+body.dark-mode .floating-upload-btn {
+  background-color: #111827; /* Dark surface match color background */
+  color: #4ecdc4;            /* Soft accent teal variable definition matching custom HTML inline markup */
+  border: 1px solid var(--border-color);
+}
+
+body.dark-mode .floating-upload-btn:hover {
+  background-color: #162533;
+}
