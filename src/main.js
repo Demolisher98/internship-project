@@ -471,8 +471,19 @@ async function processAudioBlob(audioBlob) {
     openOrderConfirmation(parsedResult, parsedResult._transcript || "");
   } catch (err) {
     console.error("Audio processing failed:", err);
-    voiceStatusText.textContent = "Processing failed. Try again.";
+    
+    // Notify the user on the overlay that fallback is happening
+    voiceStatusText.textContent = "API busy/error. Opening manual entry...";
     voiceTranscriptPreview.textContent = err.message;
+    
+    // Wait for 1 second (1000ms) before transitioning to the manual entry panel
+    setTimeout(() => {
+      voiceOverlay.classList.add("hidden");
+      openOrderConfirmation(
+        { vendorName: "", items: [], isNewVendor: true, source: "manual" }, 
+        "Voice API Unavailable — Manual Override"
+      );
+    }, 1000);
   }
 }
 
