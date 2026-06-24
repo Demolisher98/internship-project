@@ -799,21 +799,23 @@ body {
 }
 
 /* Floating animated blob behind the button */
+/* Locate this block in style.css and update it */
 .floating-voice-btn::before {
   content: '';
   position: absolute;
-  /* Reduced size for tighter, smaller waves */
-  top: -10%; 
-  left: -10%;
-  width: 120%; 
-  height: 120%;
   
-  /* Pink to Blue gradient with slight transparency */
+  /* Lock sizing to match the 66px parent button frame exactly */
+  top: 0; 
+  left: 0;
+  width: 66px; 
+  height: 66px;
+  
+  /* Soft pink to blue fluid gradient blend */
   background: linear-gradient(135deg, rgba(236, 72, 153, 0.6) 0%, rgba(59, 130, 246, 0.6) 100%);
   border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
   z-index: -1;
   
-  /* Sped up the animation from 6s to 3.5s */
+  /* Retain smooth loop properties */
   animation: morphBlob 5s ease-in-out infinite alternate;
   pointer-events: none;
   transition: opacity 0.3s ease;
@@ -2312,10 +2314,11 @@ body {
    ============================================================ */
 
 /* Wrapper layout housing both the upload indicator and mic button stacked */
+/* Wrapper layout housing both the upload indicator and mic button stacked */
 .audio-actions-group {
-  position: fixed;
-  bottom: 84px;
-  right: 24px;
+  position: absolute; /* Changed from fixed to absolute to lock inside #app */
+  bottom: 80px;       /* Sitting comfortably right above the bottom tab bar */
+  right: 20px;        /* Pinned to the right margin of the app frame */
   display: flex;
   flex-direction: column;
   gap: 14px;
