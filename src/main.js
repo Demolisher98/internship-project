@@ -1,6 +1,6 @@
 import './style.css';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 // Default static lists (used for first-time setup initialization)
 const VENDORS_STATIC = [
@@ -92,6 +92,27 @@ const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 const CLOUD_LIVE_DOC = "live";
 const CLOUD_ARCHIVE_COLLECTION = "archives";
+
+// ----------------------
+// ANALYTICS EVENT LOGGER
+// ----------------------
+// Every key action writes a timestamped document to the "events" Firestore collection.
+// This generates the independent-usage evidence the panel requested:
+// panel can see exact timestamps of when Sai Pavan used the app without the team present.
+async function logEvent(eventName, metadata = {}) {
+  try {
+    await addDoc(collection(db, "events"), {
+      event: eventName,
+      timestamp: serverTimestamp(),
+      localTime: new Date().toISOString(),
+      ...metadata
+    });
+    console.log(`📊 Event logged: ${eventName}`, metadata);
+  } catch (err) {
+    // Never block the user flow for analytics failures
+    console.warn("Analytics log failed (non-critical):", err.message);
+  }
+}
 
 // Get today's date as string (YYYY-MM-DD)
 function getTodayDate() {
@@ -571,10 +592,10 @@ function updateDashboardMetrics() {
 
   const totalProfit = totalSales - totalCost;
 
-  statDue.textContent = `₹${totalDue}`;
-  statCollected.textContent = `₹${totalCollected}`;
-  statSales.textContent = `₹${totalSales}`;
-  statProfit.textContent = `₹${totalProfit}`;
+  statDue.textContent = formatCurrency(totalDue);
+  statCollected.textContent = formatCurrency(totalCollected);
+  statSales.textContent = formatCurrency(totalSales);
+  statProfit.textContent = formatCurrency(totalProfit);
 }
 
 function formatCurrency(value) {
@@ -1210,6 +1231,10 @@ function renderVendorsList(filterQuery = "") {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       const vendorIdx = parseInt(btn.getAttribute("data-index"));
+      logEvent("bill_sent", {
+        vendorName: appState.vendors[vendorIdx]?.name || "unknown",
+        due: appState.vendors[vendorIdx]?.due || 0
+      });
       generateAndShareBill(vendorIdx);
     });
   });
@@ -1524,6 +1549,11 @@ function processCollection(vendorIdx, amount) {
   });
 
   saveStore().catch(console.error);
+  logEvent("due_collected", {
+    vendorName: vendor.name,
+    amount: amount,
+    remainingDue: vendor.due
+  });
   renderAll();
   
   if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
@@ -2565,6 +2595,7 @@ voiceTriggerBtn.addEventListener("click", () => {
     return;
   }
 
+  logEvent("mic_tapped");
   voiceOverlay.classList.remove("hidden");
   startAudioRecording();
 });
@@ -2703,7 +2734,13 @@ saveConfirmBtn.addEventListener("click", () => {
   vendor.orders = [...vendor.orders, ...orders];
 
   saveStore().catch(console.error);
-  applyPendingBpIfStockDepleted(); // activate new BP if any item just hit 0 stock
+  applyPendingBpIfStockDepleted();
+  logEvent("order_saved", {
+    vendorName: targetVendorName,
+    itemCount: orders.length,
+    totalAmount: totalSp,
+    source: "voice"
+  });
   confirmModal.classList.add("hidden");
   renderAll();
   checkStockAlerts();
@@ -2772,6 +2809,10 @@ setTimeout(() => {
   }
 
   console.log("🚀 Call recording upload event listeners successfully initialized.");
+
+  // Set accept to audio formats used by WhatsApp (ogg/m4a), Voice Memos (m4a/mp4),
+  // and standard recordings — iOS Files app will filter to matching files automatically.
+  audioFileInput.accept = "audio/*,.m4a,.ogg,.mp3,.mp4,.wav,.webm,.aac,.opus";
 
   // 1. Trigger the native hidden file browser panel
   fileUploadBtn.addEventListener("click", (e) => {
