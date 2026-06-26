@@ -464,7 +464,7 @@ async function processAudioBlob(audioBlob) {
       reader.readAsDataURL(audioBlob);
     });
 
-    const parsedResult = await runGeminiAudioParser(base64Audio);
+    const parsedResult = await runGeminiAudioParser(base64Audio, "audio/webm");
     voiceOverlay.classList.add("hidden");
     openOrderConfirmation(parsedResult, parsedResult._transcript || "");
   } catch (err) {
@@ -2253,12 +2253,57 @@ function runLocalFallbackParser(transcript) {
 }
 
 // Call Google Gemini API with raw audio (STT + parsing in one shot)
-async function runGeminiAudioParser(base64Audio) {
+// Three-model fallback chain — each model has a separate quota pool.
+// If gemini-2.5-flash is saturated (common on free tier at 7-9 PM peak),
+// we automatically retry with lite and 2.0-flash before giving up.
+const GEMINI_MODEL_CHAIN = [
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash"
+];
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isRetryable(status) {
+  return status === 429 || status === 503 || (status >= 500 && status < 600);
+}
+
+async function callGeminiModel(model, base64Audio, prompt, mimeType) {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${appState.apiKey}`;
+  const payload = {
+    contents: [{
+      parts: [
+        { inline_data: { mime_type: mimeType, data: base64Audio } },
+        { text: prompt }
+      ]
+    }],
+    generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
+  };
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorDetails = await response.text();
+    const err = new Error(`Gemini Error (${model}): ${response.status} - ${errorDetails}`);
+    err.status = response.status;
+    throw err;
+  }
+
+  const result = await response.json();
+  const jsonText = result.candidates[0].content.parts[0].text;
+  return JSON.parse(jsonText.replace(/```json|```/g, "").trim());
+}
+
+async function runGeminiAudioParser(base64Audio, mimeType = "audio/webm", onStatus) {
   if (!appState.apiKey) {
     throw new Error("No API key configured");
   }
-
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${appState.apiKey}`;
 
   const prompt = `You are an AI order processor for "Union Packages", a B2B disposable products distributor in Vijayawada, India.
 
@@ -2278,46 +2323,49 @@ Instructions:
 5. Return ONLY a JSON object with these exact fields, no markdown:
 {"transcript": "...", "vendorName": "...", "isNewVendor": false, "items": [{"name": "...", "qty": 1}]}`;
 
-  const payload = {
-    contents: [{
-      parts: [
-        {
-          inline_data: {
-            mime_type: "audio/webm",
-            data: base64Audio
-          }
-        },
-        { text: prompt }
-      ]
-    }],
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.1
+  let lastError = null;
+
+  for (let mi = 0; mi < GEMINI_MODEL_CHAIN.length; mi++) {
+    const model = GEMINI_MODEL_CHAIN[mi];
+    const maxAttempts = 3;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const label = mi === 0
+          ? "Sending to Gemini..."
+          : `Trying backup model ${mi + 1} of ${GEMINI_MODEL_CHAIN.length}...`;
+        if (onStatus) onStatus(label);
+        if (voiceStatusText) voiceStatusText.textContent = label;
+
+        const parsedData = await callGeminiModel(model, base64Audio, prompt, mimeType);
+        console.log(`✅ Gemini success [model=${model}, attempt=${attempt}]`);
+        return {
+          vendorName: parsedData.vendorName || "",
+          items: parsedData.items || [],
+          isNewVendor: !!parsedData.isNewVendor,
+          _transcript: parsedData.transcript || "",
+          source: "gemini"
+        };
+      } catch (err) {
+        lastError = err;
+        console.warn(`⚠️ Gemini attempt failed [model=${model}, attempt=${attempt}]:`, err.message);
+
+        if (!isRetryable(err.status)) break; // bad key, bad request — no point retrying
+
+        if (attempt < maxAttempts) {
+          const waitMs = 1000 * Math.pow(2, attempt - 1); // 1s, 2s, 4s
+          const msg = `Servers busy, retrying in ${waitMs / 1000}s...`;
+          if (onStatus) onStatus(msg);
+          if (voiceStatusText) voiceStatusText.textContent = msg;
+          await sleep(waitMs);
+        }
+      }
     }
-  };
-
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    const errorDetails = await response.text();
-    throw new Error(`Gemini API Error: ${response.status} - ${errorDetails}`);
+    // All retries on this model exhausted — move to next model
+    console.warn(`⚠️ All attempts failed for ${model}, trying next model...`);
   }
 
-  const result = await response.json();
-  const jsonText = result.candidates[0].content.parts[0].text;
-  const parsedData = JSON.parse(jsonText.replace(/```json|```/g, "").trim());
-
-  return {
-    vendorName: parsedData.vendorName || "",
-    items: parsedData.items || [],
-    isNewVendor: !!parsedData.isNewVendor,
-    _transcript: parsedData.transcript || "",
-    source: "gemini"
-  };
+  throw lastError || new Error("All Gemini models failed after retries.");
 }
 
 // ----------------------
@@ -2769,7 +2817,7 @@ setTimeout(() => {
       if (voiceTranscriptPreview) voiceTranscriptPreview.textContent = "Parsing transaction details with LLM engine...";
       if (voiceStatusText) voiceStatusText.textContent = "Sending to Gemini...";
 
-      const parsedResult = await runGeminiAudioParser(base64Audio);
+      const parsedResult = await runGeminiAudioParser(base64Audio, file.type || "audio/webm");
       
       console.log("✅ Gemini API responded successfully:", parsedResult);
       if (voiceOverlay) voiceOverlay.classList.add("hidden");
