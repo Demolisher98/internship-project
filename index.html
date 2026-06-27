@@ -78,12 +78,20 @@
 
         <div class="audio-actions-group" style="bottom: 84px; right: 24px; display: flex; flex-direction: column; gap: 14px; z-index: 99;">
           <input type="file" id="audio-file-input" accept="audio/*" style="display: none;" />
+          <input type="file" id="camera-file-input" accept="image/*" capture="environment" style="display: none;" />
           
           <button id="file-upload-btn" class="floating-upload-btn" aria-label="Upload Call Recording" style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; background-color: #162533; color: #4ecdc4; box-shadow: 0 4px 10px rgba(0,0,0,0.25); margin: 0 auto;">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="17 8 12 3 7 8"></polyline>
               <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </button>
+
+          <button id="camera-trigger-btn" class="floating-camera-btn" aria-label="Take Photo of Note" style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; background-color: #162533; color: #f59e0b; box-shadow: 0 4px 10px rgba(0,0,0,0.25); margin: 0 auto;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
             </svg>
           </button>
 

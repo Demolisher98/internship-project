@@ -2274,6 +2274,7 @@ body {
 }
 
 .floating-upload-btn,
+.floating-camera-btn,
 .floating-voice-btn {
   border: none;
   border-radius: 50%;
@@ -2299,6 +2300,13 @@ body {
   height: 46px;
 }
 
+/* Camera Note Upload Button layout dimensions */
+.floating-camera-btn {
+  width: 46px;
+  height: 46px;
+  color: var(--accent-amber);
+}
+
 /* Standard Voice Microphone Trigger Button layout dimensions */
 .floating-voice-btn {
   width: 56px;
@@ -2313,12 +2321,14 @@ body {
 
 /* Clean UI micro-interactions handling hover scale scaling safely */
 .floating-upload-btn:hover,
+.floating-camera-btn:hover,
 .floating-voice-btn:hover {
   transform: scale(1.05);
   background-color: var(--bg-dark);
 }
 
 .floating-upload-btn:active,
+.floating-camera-btn:active,
 .floating-voice-btn:active {
   transform: scale(0.95);
 }
@@ -2331,7 +2341,14 @@ body.dark-mode .floating-voice-btn {
   border: 1px solid var(--border-color);
 }
 
+body.dark-mode .floating-camera-btn {
+  background-color: #111827;
+  color: var(--accent-amber);
+  border: 1px solid var(--border-color);
+}
+
 body.dark-mode .floating-upload-btn:hover,
+body.dark-mode .floating-camera-btn:hover,
 body.dark-mode .floating-voice-btn:hover {
   background-color: #162533;
 }

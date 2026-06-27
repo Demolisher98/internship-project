@@ -376,6 +376,8 @@ const defaultResetBtn = document.getElementById("default-reset-btn");
 const monthlyResetBtn = document.getElementById("monthly-reset-btn");
 
 const voiceTriggerBtn = document.getElementById("voice-trigger-btn");
+const cameraTriggerBtn = document.getElementById("camera-trigger-btn");
+const cameraFileInput = document.getElementById("camera-file-input");
 const voiceOverlay = document.getElementById("voice-overlay");
 const voiceStatusText = document.getElementById("voice-status-text");
 const voiceTranscriptPreview = document.getElementById("voice-transcript-preview");
@@ -2513,6 +2515,71 @@ Instructions:
   throw lastError || new Error("All Gemini models failed after retries.");
 }
 
+async function runGeminiImageParser(base64Image, mimeType = "image/jpeg", onStatus) {
+  if (!appState.apiKey) {
+    throw new Error("No API key configured");
+  }
+
+  const prompt = `You are an AI order processor for "Aeonian Packages", a B2B distributor of disposable food packaging products in Vijayawada, India.
+
+Analyze this image/photo of a handwritten order note. The handwriting contains one or more product orders for a specific vendor (food stall). Focus on the vendor name and the products listed with their quantities.
+
+Available Vendors:
+${JSON.stringify(appState.vendors.map(v => v.name))}
+
+Available Products:
+${JSON.stringify(appState.inventory.map(i => i.name))}
+
+Instructions:
+1. Transcribe the handwritten order text or summarize what you see in the note (store in "transcript" field).
+2. Fuzzy-match the vendor name to the closest one in the Vendors List. If no matches are found, set "vendorName" to the name written on the note and set isNewVendor=true.
+3. Extract each product and its quantity. Fuzzy-match the product name to the closest one in the Products list. If the quantity is written in words (e.g. one, two, five, rendu, aidu), convert to a number.
+4. Return ONLY a JSON object with these exact fields, no markdown backticks:
+{"transcript": "...", "vendorName": "...", "isNewVendor": false, "items": [{"name": "...", "qty": 1}]}`;
+
+  let lastError = null;
+
+  for (let mi = 0; mi < GEMINI_MODEL_CHAIN.length; mi++) {
+    const model = GEMINI_MODEL_CHAIN[mi];
+    const maxAttempts = 3;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const label = mi === 0
+          ? "Analyzing note with Gemini..."
+          : `Trying backup model ${mi + 1} of ${GEMINI_MODEL_CHAIN.length}...`;
+        if (onStatus) onStatus(label);
+        if (voiceStatusText) voiceStatusText.textContent = label;
+
+        const parsedData = await callGeminiModel(model, base64Image, prompt, mimeType);
+        console.log(`✅ Gemini image success [model=${model}, attempt=${attempt}]`);
+        return {
+          vendorName: parsedData.vendorName || "",
+          items: parsedData.items || [],
+          isNewVendor: !!parsedData.isNewVendor,
+          _transcript: parsedData.transcript || "",
+          source: "gemini"
+        };
+      } catch (err) {
+        lastError = err;
+        console.warn(`⚠️ Gemini image attempt failed [model=${model}, attempt=${attempt}]:`, err.message);
+
+        if (!isRetryable(err.status)) break; // bad key, bad request — no point retrying
+
+        if (attempt < maxAttempts) {
+          const waitMs = 1000 * Math.pow(2, attempt - 1); // 1s, 2s, 4s
+          const msg = `Servers busy, retrying in ${waitMs / 1000}s...`;
+          if (onStatus) onStatus(msg);
+          if (voiceStatusText) voiceStatusText.textContent = msg;
+          await sleep(waitMs);
+        }
+      }
+    }
+  }
+
+  throw lastError || new Error("All Gemini models failed after retries.");
+}
+
 // ----------------------
 // MODAL WORKFLOW ACTIONS
 // ----------------------
@@ -3096,4 +3163,76 @@ setTimeout(() => {
       console.log("🧹 Input stream flushed and ready for next file.");
     }
   });
+
+  // 3. Camera Note Capture trigger
+  if (cameraTriggerBtn && cameraFileInput) {
+    console.log("📸 Camera event listeners successfully initialized.");
+    
+    cameraTriggerBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      console.log("📸 Camera button clicked. Opening camera/image picker...");
+      cameraFileInput.click();
+    });
+
+    cameraFileInput.addEventListener("change", async function(event) {
+      console.log("🗂️ Camera file select event captured.");
+      
+      const file = event.target.files?.[0];
+      if (!file) {
+        console.warn("⚠️ Camera file picker opened, but no image was selected.");
+        return;
+      }
+
+      console.log(`🖼️ Image selected: ${file.name} | Type: ${file.type} | Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+
+      const voiceOverlay = document.getElementById("voice-overlay");
+      const voiceTranscriptPreview = document.getElementById("voice-transcript-preview");
+      const voiceStatusText = document.getElementById("voice-status-text");
+
+      if (voiceOverlay) voiceOverlay.classList.remove("hidden");
+      if (voiceTranscriptPreview) {
+        voiceTranscriptPreview.classList.remove("placeholder-text");
+        voiceTranscriptPreview.textContent = `Reading note image: ${file.name}...`;
+      }
+      if (voiceStatusText) voiceStatusText.textContent = "Converting image stream...";
+
+      try {
+        console.log("⏳ Converting image to base64 format...");
+        const base64Image = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result.split(",")[1]);
+          reader.onerror = (err) => reject(err);
+          reader.readAsDataURL(file);
+        });
+
+        console.log("📡 Base64 conversion complete. Dispatching payload directly to Gemini Image parser...");
+        if (voiceTranscriptPreview) voiceTranscriptPreview.textContent = "Parsing handwritten order with LLM engine...";
+        if (voiceStatusText) voiceStatusText.textContent = "Sending to Gemini...";
+
+        const parsedResult = await runGeminiImageParser(base64Image, file.type || "image/jpeg");
+        
+        console.log("✅ Gemini Image API responded successfully:", parsedResult);
+        if (voiceOverlay) voiceOverlay.classList.add("hidden");
+        
+        openOrderConfirmation(parsedResult, parsedResult._transcript || `Image note: ${file.name}`);
+
+      } catch (err) {
+        console.error("❌ Image parsing or API transmission failed:", err);
+        
+        if (voiceStatusText) voiceStatusText.textContent = "API error. Switching to manual override...";
+        if (voiceTranscriptPreview) voiceTranscriptPreview.textContent = err.message;
+        
+        setTimeout(() => {
+          if (voiceOverlay) voiceOverlay.classList.add("hidden");
+          openOrderConfirmation(
+            { vendorName: "", items: [], isNewVendor: true, source: "manual" }, 
+            `Image Pipeline Fail — ${file.name}`
+          );
+        }, 1500);
+      } finally {
+        this.value = null;
+        console.log("🧹 Input stream flushed and ready for next photo.");
+      }
+    });
+  }
 }, 500); // 500ms delay ensures Firestore/App state rendering scripts finish first
