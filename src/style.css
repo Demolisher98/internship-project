@@ -1981,10 +1981,18 @@ body {
   border-bottom-color: var(--accent-blue);
 }
 
+/* Hide number input spinners */
+.confirm-qty-input::-webkit-outer-spin-button,
+.confirm-qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .confirm-qty-input {
-  width: 54px;
+  -moz-appearance: textfield;
+  width: 62px;
   flex-shrink: 0;
-  padding: 8px 6px;
+  padding: 8px 18px 8px 6px;
   background: var(--glass-05);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -1998,6 +2006,53 @@ body {
 .confirm-qty-input:focus {
   outline: none;
   border-color: var(--accent-blue);
+}
+
+.confirm-qty-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.confirm-qty-arrows {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  height: 28px;
+  justify-content: center;
+  gap: 1px;
+}
+
+.confirm-qty-arrow {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 14px;
+  height: 12px;
+  border-radius: 3px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.confirm-qty-arrow:hover {
+  background-color: var(--glass-10);
+  color: var(--text-main);
+}
+
+.confirm-qty-arrow:active {
+  background-color: var(--glass-15);
+}
+
+.confirm-qty-arrow svg {
+  display: block;
 }
 
 .confirm-price-input {

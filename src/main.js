@@ -2583,12 +2583,48 @@ function addItemRow(selectedName = "", qty = 1, price = null) {
     select.value = selectedName;
   }
 
+  const qtyContainer = document.createElement("div");
+  qtyContainer.className = "confirm-qty-container";
+
   const qtyInput = document.createElement("input");
   qtyInput.type = "number";
   qtyInput.className = "confirm-qty-input";
   qtyInput.min = "1";
   qtyInput.value = qty;
   qtyInput.title = "Quantity";
+
+  const arrowContainer = document.createElement("div");
+  arrowContainer.className = "confirm-qty-arrows";
+
+  const upArrow = document.createElement("button");
+  upArrow.type = "button";
+  upArrow.className = "confirm-qty-arrow up";
+  upArrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>`;
+  upArrow.title = "Increase Quantity";
+  upArrow.addEventListener("click", () => {
+    let currentVal = parseInt(qtyInput.value) || 0;
+    qtyInput.value = currentVal + 1;
+    qtyInput.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+
+  const downArrow = document.createElement("button");
+  downArrow.type = "button";
+  downArrow.className = "confirm-qty-arrow down";
+  downArrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+  downArrow.title = "Decrease Quantity";
+  downArrow.addEventListener("click", () => {
+    let currentVal = parseInt(qtyInput.value) || 0;
+    const minVal = parseInt(qtyInput.min) || 1;
+    if (currentVal > minVal) {
+      qtyInput.value = currentVal - 1;
+      qtyInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  });
+
+  arrowContainer.appendChild(upArrow);
+  arrowContainer.appendChild(downArrow);
+  qtyContainer.appendChild(qtyInput);
+  qtyContainer.appendChild(arrowContainer);
 
   const priceInput = document.createElement("input");
   priceInput.type = "number";
@@ -2619,7 +2655,7 @@ function addItemRow(selectedName = "", qty = 1, price = null) {
   priceInput.addEventListener("input", recalculateConfirmationTotals);
 
   row.appendChild(select);
-  row.appendChild(qtyInput);
+  row.appendChild(qtyContainer);
   row.appendChild(priceInput);
   row.appendChild(removeBtn);
   confirmItemsList.appendChild(row);
