@@ -126,7 +126,7 @@ function getTodayDate() {
 // Check if day has changed — archive yesterday's data and clear today's orders (dues persist)
 async function checkAndArchiveDayChange(cloudData) {
   const today = getTodayDate();
-  
+
   // Retrieve the last reset date, looking at cloudData first, then fallback to savedAt, then localStorage
   let lastResetDate = null;
   if (cloudData) {
@@ -136,7 +136,7 @@ async function checkAndArchiveDayChange(cloudData) {
       lastResetDate = cloudData.savedAt.substring(0, 10);
     }
   }
-  
+
   if (!lastResetDate) {
     lastResetDate = localStorage.getItem("aeonian_last_reset_date");
   }
@@ -260,22 +260,22 @@ let appState = {
 // Initial state setup (CLOUD VERSION)
 async function initStore() {
   console.log("🔄 Initializing app store from cloud...");
-  
+
   const cloudData = await fetchFromCloud();
-  
+
   if (cloudData && cloudData.vendors) {
     console.log("📦 Loading from cloud");
     appState.apiKey = cloudData.credentials?.geminiKey || "";
     appState.merchantMode = cloudData.credentials?.merchantMode === true;
     appState.purchaseLogs = cloudData.purchaseLogs || [];
     appState.lastResetDate = cloudData.lastResetDate || null;
-    
+
     if (cloudData.inventory && cloudData.inventory.length > 0) {
       appState.inventory = cloudData.inventory;
     } else {
       appState.inventory = JSON.parse(JSON.stringify(INVENTORY_STATIC_DEFAULTS));
     }
-    
+
     if (cloudData.vendors && cloudData.vendors.length > 0) {
       appState.vendors = cloudData.vendors;
       appState.vendors.forEach(v => {
@@ -311,7 +311,7 @@ async function initStore() {
     appState.lastResetDate = getTodayDate();
     await saveStore();
   }
-  
+
   if (themeToggleBtn) {
     themeToggleBtn.addEventListener("click", () => {
       document.body.classList.toggle("dark-mode");
@@ -395,6 +395,8 @@ const confirmNewVendorInput = document.getElementById("confirm-new-vendor-input"
 const isNewVendorCb = document.getElementById("is-new-vendor-cb");
 const confirmItemsList = document.getElementById("confirm-items-list");
 const addItemRowBtn = document.getElementById("add-item-row-btn");
+const confirmTodaysBill = document.getElementById("confirm-todays-bill");
+const confirmPreviousDue = document.getElementById("confirm-previous-due");
 const confirmTotalBp = document.getElementById("confirm-total-bp");
 const confirmTotalSp = document.getElementById("confirm-total-sp");
 
@@ -553,16 +555,16 @@ async function processAudioBlob(audioBlob) {
     openOrderConfirmation(parsedResult, parsedResult._transcript || "");
   } catch (err) {
     console.error("Audio processing failed:", err);
-    
+
     // Notify the user on the overlay that fallback is happening
     voiceStatusText.textContent = "API busy/error. Opening manual entry...";
     voiceTranscriptPreview.textContent = err.message;
-    
+
     // Wait for 1 second (1000ms) before transitioning to the manual entry panel
     setTimeout(() => {
       voiceOverlay.classList.add("hidden");
       openOrderConfirmation(
-        { vendorName: "", items: [], isNewVendor: true, source: "manual" }, 
+        { vendorName: "", items: [], isNewVendor: true, source: "manual" },
         "Voice API Unavailable — Manual Override"
       );
     }, 1000);
@@ -575,7 +577,7 @@ async function processAudioBlob(audioBlob) {
 tabButtons.forEach(btn => {
   btn.addEventListener("click", () => {
     const target = btn.getAttribute("data-target");
-    
+
     // Switch Active button styling
     tabButtons.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
@@ -642,7 +644,7 @@ function updateDashboardMetrics() {
 
   appState.vendors.forEach(vendor => {
     totalDue += vendor.due;
-    
+
     vendor.history.forEach(payment => {
       totalCollected += payment.amount;
     });
@@ -1008,14 +1010,15 @@ function renderVendorLogs(vendorIdx) {
     });
   });
 
-  (vendor.history || []).forEach(payment => {
+  (vendor.history || []).forEach((payment, pIdx) => {
     const date = getRecordDate(payment, vendor);
     logs.push({
       type: "Collection",
       date,
       amount: payment.amount || 0,
       description: "Cash collected",
-      meta: "Payment received"
+      meta: "Payment received",
+      index: pIdx
     });
   });
 
@@ -1082,7 +1085,47 @@ function renderVendorLogs(vendorIdx) {
         amount.className = "vendor-log-amount";
         amount.textContent = `${log.type === "Collection" ? "-" : "+"}${formatCurrency(log.amount)}`;
 
-        row.append(left, amount);
+        if (log.type === "Collection") {
+          const undoBtn = document.createElement("button");
+          undoBtn.className = "undo-payment-btn";
+          undoBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+            Undo
+          `;
+          undoBtn.title = "Undo this payment";
+          undoBtn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            if (!confirm(`Are you sure you want to undo this collection of ₹${log.amount}? This will add ₹${log.amount} back to the vendor's due.`)) {
+              return;
+            }
+
+            // Revert vendor due
+            vendor.due += log.amount;
+            // Remove from vendor history
+            vendor.history.splice(log.index, 1);
+            // Save state
+            await saveStore();
+            logEvent("due_collection_undone", {
+              vendorName: vendor.name,
+              amount: log.amount,
+              newDue: vendor.due
+            });
+            // Re-render
+            renderAll();
+            renderVendorLogs(vendorIdx);
+          });
+
+          const rightCol = document.createElement("div");
+          rightCol.className = "log-right-actions";
+          rightCol.append(amount, undoBtn);
+          row.append(left, rightCol);
+        } else {
+          row.append(left, amount);
+        }
+
         dayBlock.appendChild(row);
       });
 
@@ -1095,11 +1138,36 @@ function renderVendorLogs(vendorIdx) {
   vendorLogModal.classList.remove("hidden");
 }
 
+async function undoVendorCollection(vendorIdx, paymentIdx, askConfirmation = true) {
+  const vendor = appState.vendors[vendorIdx];
+  if (!vendor || !vendor.history || !vendor.history[paymentIdx]) return false;
+
+  const payment = vendor.history[paymentIdx];
+  const amount = payment.amount || 0;
+
+  if (askConfirmation && !confirm(`Undo this collection of ${formatCurrency(amount)}? This will add it back to ${vendor.name}'s due.`)) {
+    return false;
+  }
+
+  vendor.due += amount;
+  vendor.history.splice(paymentIdx, 1);
+  vendor.lastUpdated = Date.now();
+
+  await saveStore();
+  logEvent("due_collection_undone", {
+    vendorName: vendor.name,
+    amount,
+    newDue: vendor.due
+  });
+  renderAll();
+  return true;
+}
+
 function renderVendorsList(filterQuery = "") {
   vendorsContainer.innerHTML = "";
   const query = filterQuery.toLowerCase().trim();
-  
-  const filtered = appState.vendors.filter(vendor => 
+
+  const filtered = appState.vendors.filter(vendor =>
     vendor.name.toLowerCase().includes(query)
   );
 
@@ -1122,7 +1190,7 @@ function renderVendorsList(filterQuery = "") {
     const originalIndex = appState.vendors.findIndex(v => v.name === vendor.name);
     const card = document.createElement("div");
     card.className = "vendor-card";
-    
+
     let ordersMarkup = "";
     if (vendor.orders && vendor.orders.length > 0) {
       ordersMarkup = `
@@ -1146,8 +1214,16 @@ function renderVendorsList(filterQuery = "") {
 
     let historyLabel = "";
     const totalCollected = vendor.history.reduce((sum, p) => sum + p.amount, 0);
+    const lastCollectionIndex = vendor.history.length - 1;
     if (totalCollected > 0) {
       historyLabel = `<span class="collection-history-tag">Total Paid: ₹${totalCollected}</span>`;
+    }
+
+    if (totalCollected > 0) {
+      historyLabel = `
+        <span class="collection-history-tag">Total Paid: ${formatCurrency(totalCollected)}</span>
+        <button class="undo-last-collection-btn" data-index="${originalIndex}" data-payment-index="${lastCollectionIndex}" title="Undo latest collection">Undo last</button>
+      `;
     }
 
     card.innerHTML = `
@@ -1189,11 +1265,11 @@ function renderVendorsList(filterQuery = "") {
         <div class="collection-input-row">
           <div class="collection-input-wrapper">
             <span class="rupee-symbol">₹</span>
-            <input type="number" 
-                   id="collect-input-${originalIndex}" 
-                   class="collection-input" 
-                   placeholder="Enter cash amount" 
-                   min="0" 
+            <input type="number"
+                   id="collect-input-${originalIndex}"
+                   class="collection-input"
+                   placeholder="Enter cash amount"
+                   min="0"
                    max="${vendor.due}" />
           </div>
           <button class="collect-btn" data-index="${originalIndex}">Collect</button>
@@ -1267,9 +1343,18 @@ function renderVendorsList(filterQuery = "") {
       const idx = parseInt(chip.getAttribute("data-index"));
       const val = parseFloat(chip.getAttribute("data-value"));
       const due = appState.vendors[idx].due;
-      
+
       const input = document.getElementById(`collect-input-${idx}`);
       input.value = Math.min(val, due);
+    });
+  });
+
+  document.querySelectorAll(".undo-last-collection-btn").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.getAttribute("data-index"));
+      const paymentIdx = parseInt(btn.getAttribute("data-payment-index"));
+      await undoVendorCollection(idx, paymentIdx, true);
     });
   });
 
@@ -1359,12 +1444,15 @@ async function generateAndShareBill(vendorIdx) {
   const ROW_H    = 56;   // each item row
   const DIV_H    = 20;   // thin divider gap
   const SUB_H    = 52;   // subtotal row
-  const TOT_H    = 72;   // TODAY'S TOTAL box
-  const DUE_H    = 84;   // OUTSTANDING DUE box
+  const SUM_H    = 150;  // unified Financial Summary box (Today's Bill, Previous Due, Total Due)
   const FOOT_H   = 60;   // footer text
 
+  const todaysBill = vendor.orders.filter(o => o.itemName !== "Previous Due").reduce((sum, o) => sum + (o.sp * o.quantity), 0);
+  const previousDue = Math.max(0, vendor.due - todaysBill);
+  const totalDue = vendor.due;
+
   const itemCount = vendor.orders.length;
-  const H = HEADER_H + BILL_H + COL_H + itemCount * ROW_H + DIV_H + SUB_H + TOT_H + DUE_H + FOOT_H;
+  const H = HEADER_H + BILL_H + COL_H + itemCount * ROW_H + DIV_H + SUB_H + SUM_H + FOOT_H;
 
   const canvas = document.createElement("canvas");
   canvas.width  = W;
@@ -1379,7 +1467,6 @@ async function generateAndShareBill(vendorIdx) {
   const WHITE    = "#f0f4f8";
   const MUTED    = "#7a9bb5";
   const DIVIDER  = "#1e3448";
-  const DUE_BG   = "#162030";
 
   // helpers
   function roundRect(x, y, w, h, r, fill) {
@@ -1484,8 +1571,6 @@ async function generateAndShareBill(vendorIdx) {
   y += COL_H;
 
   // ── ITEM ROWS ─────────────────────────────────────────────
-  let totalSp = 0;
-
   // product-type icons (unicode glyphs as simple stand-ins)
   const iconMap = {
     "plate":  "○", "box": "□", "tissue": "≋", "wrap": "◎",
@@ -1532,7 +1617,6 @@ async function generateAndShareBill(vendorIdx) {
 
     // line total
     const lineTotal = order.sp * order.quantity;
-    totalSp += lineTotal;
     ctx.fillStyle = WHITE;
     ctx.font = "bold 14px system-ui, sans-serif";
     ctx.textAlign = "right";
@@ -1550,54 +1634,65 @@ async function generateAndShareBill(vendorIdx) {
   ctx.lineTo(W - PAD, y);
   ctx.stroke();
 
+  const productCount = vendor.orders.filter(o => o.itemName !== "Previous Due").length;
   ctx.fillStyle = MUTED;
   ctx.font = "14px system-ui, sans-serif";
-  ctx.fillText(`Subtotal (${itemCount} item${itemCount > 1 ? "s" : ""})`, PAD, y + 34);
+  ctx.fillText(`Subtotal (${productCount} item${productCount !== 1 ? "s" : ""})`, PAD, y + 34);
   ctx.fillStyle = WHITE;
   ctx.font = "bold 14px system-ui, sans-serif";
   ctx.textAlign = "right";
-  ctx.fillText(`${totalSp}`, AMT_X, y + 34);
+  ctx.fillText(`${todaysBill}`, AMT_X, y + 34);
   ctx.textAlign = "left";
 
   y += SUB_H;
 
-  // ── TODAY'S TOTAL box ─────────────────────────────────────
-  roundRect(PAD - 8, y, W - (PAD - 8) * 2, TOT_H - 8, 8, SURFACE);
+  // ── FINANCIAL SUMMARY CARD ────────────────────────────────
+  roundRect(PAD - 8, y, W - (PAD - 8) * 2, SUM_H - 10, 8, SURFACE);
 
+  const cardY = y;
+
+  // Row 1: Today's Bill
   ctx.fillStyle = TEAL;
-  ctx.font = "700 12px system-ui, sans-serif";
-  ctx.fillText("TODAY'S TOTAL", PAD + 4, y + 24);
-
-  ctx.fillStyle = GOLD;
-  ctx.font = "bold 30px system-ui, sans-serif";
-  ctx.textAlign = "right";
-  ctx.fillText(`₹${totalSp}`, AMT_X, y + 54);
-  ctx.textAlign = "left";
-
-  y += TOT_H;
-
-  // ── OUTSTANDING DUE box ───────────────────────────────────
-  roundRect(PAD - 8, y, W - (PAD - 8) * 2, DUE_H - 8, 8, DUE_BG);
-
-  ctx.fillStyle = TEAL;
-  ctx.font = "700 10px system-ui, sans-serif";
-  ctx.fillText("PREVIOUS BALANCE DUE", PAD + 4, y + 20);
+  ctx.font = "bold 13px system-ui, sans-serif";
+  ctx.fillText("TODAY'S BILL", PAD + 16, cardY + 32);
 
   ctx.fillStyle = WHITE;
-  ctx.font = "700 16px system-ui, sans-serif";
-  ctx.fillText("OUTSTANDING DUE", PAD + 4, y + 44);
-
-  ctx.fillStyle = MUTED;
-  ctx.font = "11px system-ui, sans-serif";
-  ctx.fillText("(Includes this bill)", PAD + 4, y + 62);
-
-  ctx.fillStyle = vendor.due > 0 ? GOLD : TEAL;
-  ctx.font = "bold 30px system-ui, sans-serif";
+  ctx.font = "bold 16px system-ui, sans-serif";
   ctx.textAlign = "right";
-  ctx.fillText(`₹${vendor.due}`, AMT_X, y + 54);
+  ctx.fillText(`₹${todaysBill}`, AMT_X - 16, cardY + 32);
   ctx.textAlign = "left";
 
-  y += DUE_H;
+  // Row 2: Previous Due
+  ctx.fillStyle = MUTED;
+  ctx.font = "bold 13px system-ui, sans-serif";
+  ctx.fillText("PREVIOUS DUE", PAD + 16, cardY + 68);
+
+  ctx.fillStyle = WHITE;
+  ctx.font = "bold 16px system-ui, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText(`₹${previousDue}`, AMT_X - 16, cardY + 68);
+  ctx.textAlign = "left";
+
+  // Divider line
+  ctx.strokeStyle = DIVIDER;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD + 16, cardY + 90);
+  ctx.lineTo(W - PAD - 16, cardY + 90);
+  ctx.stroke();
+
+  // Row 3: Total Due
+  ctx.fillStyle = TEAL;
+  ctx.font = "bold 15px system-ui, sans-serif";
+  ctx.fillText("TOTAL DUE", PAD + 16, cardY + 118);
+
+  ctx.fillStyle = GOLD;
+  ctx.font = "bold 26px system-ui, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText(`₹${totalDue}`, AMT_X - 16, cardY + 118);
+  ctx.textAlign = "left";
+
+  y += SUM_H;
 
   // ── FOOTER ────────────────────────────────────────────────
   ctx.strokeStyle = DIVIDER;
@@ -1638,7 +1733,7 @@ function processCollection(vendorIdx, amount) {
     alert("Collected amount cannot be higher than the outstanding due!");
     return;
   }
-  
+
   vendor.due -= amount;
   vendor.lastUpdated = Date.now();
   vendor.history.push({
@@ -1654,7 +1749,7 @@ function processCollection(vendorIdx, amount) {
     remainingDue: vendor.due
   });
   renderAll();
-  
+
   if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
 }
 
@@ -1663,8 +1758,22 @@ function processCollection(vendorIdx, amount) {
 // ----------------------
 function processAddDue(vendorIdx, amount) {
   const vendor = appState.vendors[vendorIdx];
+
+  // Add pseudo-order "Previous Due" to item list
+  const prevDueOrder = {
+    itemName: "Previous Due",
+    quantity: 1,
+    sp: amount,
+    bp: 0,
+    timestamp: new Date().toISOString(),
+    monthKey: getMonthKey(new Date())
+  };
+
+  vendor.orders = vendor.orders || [];
+  vendor.orders.push(prevDueOrder);
   vendor.due += amount;
   vendor.lastUpdated = Date.now();
+
   saveStore().catch(console.error);
   logEvent("due_added_manual", {
     vendorName: vendor.name,
@@ -1701,7 +1810,7 @@ function renderStockTabList() {
   appState.inventory.forEach((item, index) => {
     const row = document.createElement("div");
     row.className = "tab-inventory-row";
-    
+
     const max = item.maxStock || 100;
     const stock = item.stock || 0;
     const statusLabel = getStockStatusLabel(stock, max);
@@ -1754,13 +1863,13 @@ function renderStockTabList() {
       targetItem.name = nameInput.value.trim() || "Product";
       targetItem.bp = parseFloat(bpInput.value) || 0;
       targetItem.sp = parseFloat(spInput.value) || 0;
-      
+
       const newMax = parseInt(maxInput.value) || 100;
       const newStock = parseInt(stockInput.value) || 0;
-      
+
       targetItem.maxStock = newMax;
       targetItem.stock = Math.min(newStock, newMax);
-      
+
       // Update status pill dynamically inline
       statusWrapper.innerHTML = getStockStatusLabel(targetItem.stock, targetItem.maxStock);
 
@@ -2150,7 +2259,7 @@ tabAddProductBtn.addEventListener("click", () => {
   saveStore().catch(console.error);
   renderStockTabList();
   renderStockDebitLogs();
-  
+
   // Multi-layered auto scroll to bottom
   const container = document.querySelector("#view-stock .settings-scroll-body");
   if (container) {
@@ -2158,7 +2267,7 @@ tabAddProductBtn.addEventListener("click", () => {
   }
   if (tabInventoryList) {
     tabInventoryList.scrollTop = tabInventoryList.scrollHeight;
-    
+
     const rows = tabInventoryList.querySelectorAll(".tab-inventory-row");
     const lastRow = rows[rows.length - 1];
     if (lastRow) {
@@ -2174,7 +2283,7 @@ function renderDirectoryList() {
   directoryListContainer.innerHTML = "";
   const query = directorySearchInput.value.toLowerCase().trim();
 
-  const filtered = appState.vendors.filter(v => 
+  const filtered = appState.vendors.filter(v =>
     v.name.toLowerCase().includes(query)
   );
 
@@ -2190,7 +2299,7 @@ function renderDirectoryList() {
     const originalIndex = appState.vendors.findIndex(v => v.name === vendor.name);
     const row = document.createElement("div");
     row.className = "directory-row";
-    
+
     // Check if vendor has outstanding dues
     const hasDue = vendor.due > 0;
     const badge = hasDue ? `<span class="directory-vendor-badge">Due: ₹${vendor.due}</span>` : "";
@@ -2215,7 +2324,7 @@ function renderDirectoryList() {
     btn.addEventListener("click", () => {
       const idx = parseInt(btn.getAttribute("data-index"));
       const vendor = appState.vendors[idx];
-      
+
       if (vendor.due > 0) {
         if (!confirm(`Warning: ${vendor.name} has outstanding due of ₹${vendor.due}. Are you sure you want to delete this vendor entirely?`)) {
           return;
@@ -2259,7 +2368,7 @@ directoryAddVendorBtn.addEventListener("click", () => {
   saveStore().catch(console.error);
   directoryNewVendorName.value = "";
   renderDirectoryList();
-  
+
   if (navigator.vibrate) navigator.vibrate(30);
 });
 
@@ -2303,15 +2412,15 @@ function runLocalFallbackParser(transcript) {
     // Fast path: Exact substring match
     if (text.includes(vName)) {
       bestMatch = { name: v.name, distance: 0, allowed: 0 };
-      break; 
+      break;
     }
 
     // Fuzzy path: Levenshtein distance on a sliding window
     const vendorWords = vName.split(/\s+/);
     const vLen = vendorWords.length;
-    
+
     // Scale allowed typos dynamically: allow ~2 typos per word in the vendor's name
-    const maxAllowedTypos = Math.max(2, vLen * 2); 
+    const maxAllowedTypos = Math.max(2, vLen * 2);
 
     if (transcriptWords.length < vLen) {
       // If the transcript is shorter than the vendor name, compare directly
@@ -2324,7 +2433,7 @@ function runLocalFallbackParser(transcript) {
       for (let i = 0; i <= transcriptWords.length - vLen; i++) {
         const windowText = transcriptWords.slice(i, i + vLen).join(" ");
         const dist = levenshteinDistance(vName, windowText);
-        
+
         if (dist < bestMatch.distance) {
           bestMatch = { name: v.name, distance: dist, allowed: maxAllowedTypos };
         }
@@ -2339,15 +2448,15 @@ function runLocalFallbackParser(transcript) {
 
   // 2. Parse products and quantities
   const quantityRegexStr = "(\\d+|one|two|three|four|five|six|seven|eight|nine|ten|okati|oka|rendu|render|moodu|nalugu|aidu)";
-  
+
   appState.inventory.forEach(item => {
     const lowerName = item.name.toLowerCase();
     let keywords = [lowerName];
-    
+
     if (lowerName.endsWith("s")) {
       keywords.push(lowerName.slice(0, -1));
     }
-    
+
     if (lowerName.includes("*")) {
       keywords.push(lowerName.replace("*", " "));
       keywords.push(lowerName.replace("*", "x"));
@@ -2595,7 +2704,7 @@ function openOrderConfirmation(parsedData, rawTranscript) {
   parserBadge.textContent = badge.label;
   parserBadge.style.background = badge.bg;
   parserBadge.style.color = badge.color;
-  
+
   // Reset confirmation selectors using current dynamic vendors list
   confirmVendorSelect.innerHTML = "";
   appState.vendors.forEach(v => {
@@ -2636,7 +2745,7 @@ function openOrderConfirmation(parsedData, rawTranscript) {
 function addItemRow(selectedName = "", qty = 1, price = null) {
   const row = document.createElement("div");
   row.className = "confirm-item-row";
-  
+
   const select = document.createElement("select");
   select.className = "confirm-item-select";
   appState.inventory.forEach(item => {
@@ -2645,7 +2754,7 @@ function addItemRow(selectedName = "", qty = 1, price = null) {
     opt.textContent = item.name;
     select.appendChild(opt);
   });
-  
+
   if (selectedName) {
     select.value = selectedName;
   }
@@ -2693,7 +2802,7 @@ function addItemRow(selectedName = "", qty = 1, price = null) {
   priceInput.className = "confirm-price-input";
   priceInput.min = "0";
   priceInput.title = "Custom Selling Price";
-  
+
   const matchedInv = appState.inventory.find(i => i.name === select.value);
   priceInput.value = price !== null ? price : (matchedInv ? matchedInv.sp : 0);
 
@@ -2712,7 +2821,7 @@ function addItemRow(selectedName = "", qty = 1, price = null) {
     }
     recalculateConfirmationTotals();
   });
-  
+
   qtyInput.addEventListener("input", recalculateConfirmationTotals);
   priceInput.addEventListener("input", recalculateConfirmationTotals);
 
@@ -2726,27 +2835,34 @@ function addItemRow(selectedName = "", qty = 1, price = null) {
 
 function recalculateConfirmationTotals() {
   let totalBp = 0;
-  let totalSp = 0;
+  let todaysBill = 0;
 
   const rows = confirmItemsList.querySelectorAll(".confirm-item-row");
   rows.forEach(row => {
     const select = row.querySelector(".confirm-item-select");
     const qtyInput = row.querySelector(".confirm-qty-input");
     const priceInput = row.querySelector(".confirm-price-input");
-    
+
     const itemName = select.value;
     const qty = parseInt(qtyInput.value) || 0;
     const customSp = parseFloat(priceInput.value) || 0;
-    
+
     const matchedInv = appState.inventory.find(i => i.name === itemName);
     if (matchedInv) {
       totalBp += matchedInv.bp * qty;
-      totalSp += customSp * qty;
+      todaysBill += customSp * qty;
     }
   });
 
-  confirmTotalBp.textContent = `₹${totalBp}`;
-  confirmTotalSp.textContent = `₹${totalSp}`;
+  const previousDue = isNewVendorCb.checked
+    ? 0
+    : (appState.vendors.find(v => v.name === confirmVendorSelect.value)?.due || 0);
+  const totalDue = previousDue + todaysBill;
+
+  if (confirmTodaysBill) confirmTodaysBill.textContent = formatCurrency(todaysBill);
+  if (confirmPreviousDue) confirmPreviousDue.textContent = formatCurrency(previousDue);
+  confirmTotalBp.textContent = formatCurrency(totalBp);
+  confirmTotalSp.textContent = formatCurrency(totalDue);
 }
 
 // ----------------------
@@ -2922,7 +3038,10 @@ isNewVendorCb.addEventListener("change", () => {
     confirmVendorSelect.classList.remove("hidden");
     confirmNewVendorInput.classList.add("hidden");
   }
+  recalculateConfirmationTotals();
 });
+
+confirmVendorSelect.addEventListener("change", recalculateConfirmationTotals);
 
 addItemRowBtn.addEventListener("click", () => {
   if (appState.inventory.length > 0) {
@@ -2937,7 +3056,7 @@ saveConfirmBtn.addEventListener("click", () => {
   // 1. Get vendor name
   let targetVendorName = "";
   const isNew = isNewVendorCb.checked;
-  
+
   if (isNew) {
     targetVendorName = confirmNewVendorInput.value.trim();
     if (!targetVendorName) {
@@ -2952,16 +3071,16 @@ saveConfirmBtn.addEventListener("click", () => {
   const orders = [];
   let totalSp = 0;
   const rows = confirmItemsList.querySelectorAll(".confirm-item-row");
-  
+
   rows.forEach(row => {
     const select = row.querySelector(".confirm-item-select");
     const qtyInput = row.querySelector(".confirm-qty-input");
     const priceInput = row.querySelector(".confirm-price-input");
-    
+
     const itemName = select.value;
     const qty = parseInt(qtyInput.value) || 0;
     const customSp = parseFloat(priceInput.value) || 0;
-    
+
     if (qty > 0) {
       const matchedInv = appState.inventory.find(i => i.name === itemName);
       if (matchedInv) {
@@ -3016,7 +3135,7 @@ saveConfirmBtn.addEventListener("click", () => {
   confirmModal.classList.add("hidden");
   renderAll();
   checkStockAlerts();
-  
+
   if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
 });
 
@@ -3076,7 +3195,7 @@ renderAll();
 // CALL RECORDING FILE UPLOAD INTEGRATION
 // ============================================================
 
-// Wrap inside a DOMContentLoaded safety check or execute directly 
+// Wrap inside a DOMContentLoaded safety check or execute directly
 // near your other voice overlay controls
 setTimeout(() => {
   const fileUploadBtn = document.getElementById("file-upload-btn");
@@ -3103,7 +3222,7 @@ setTimeout(() => {
   // 2. Process the chosen file stream
   audioFileInput.addEventListener("change", async function(event) {
     console.log("🗂️ Change event captured on file input element.");
-    
+
     const file = event.target.files?.[0];
     if (!file) {
       console.warn("⚠️ File picker opened, but no file was selected.");
@@ -3138,22 +3257,22 @@ setTimeout(() => {
       if (voiceStatusText) voiceStatusText.textContent = "Sending to Gemini...";
 
       const parsedResult = await runGeminiAudioParser(base64Audio, file.type || "audio/webm");
-      
+
       console.log("✅ Gemini API responded successfully:", parsedResult);
       if (voiceOverlay) voiceOverlay.classList.add("hidden");
-      
+
       openOrderConfirmation(parsedResult, parsedResult._transcript || `Call file: ${file.name}`);
 
     } catch (err) {
       console.error("❌ File parsing or API transmission failed:", err);
-      
+
       if (voiceStatusText) voiceStatusText.textContent = "API error. Switching to manual override...";
       if (voiceTranscriptPreview) voiceTranscriptPreview.textContent = err.message;
-      
+
       setTimeout(() => {
         if (voiceOverlay) voiceOverlay.classList.add("hidden");
         openOrderConfirmation(
-          { vendorName: "", items: [], isNewVendor: true, source: "manual" }, 
+          { vendorName: "", items: [], isNewVendor: true, source: "manual" },
           `Audio Pipeline Fail — ${file.name}`
         );
       }, 1500);
@@ -3167,7 +3286,7 @@ setTimeout(() => {
   // 3. Camera Note Capture trigger
   if (cameraTriggerBtn && cameraFileInput) {
     console.log("📸 Camera event listeners successfully initialized.");
-    
+
     cameraTriggerBtn.addEventListener("click", (e) => {
       e.preventDefault();
       console.log("📸 Camera button clicked. Opening camera/image picker...");
@@ -3176,7 +3295,7 @@ setTimeout(() => {
 
     cameraFileInput.addEventListener("change", async function(event) {
       console.log("🗂️ Camera file select event captured.");
-      
+
       const file = event.target.files?.[0];
       if (!file) {
         console.warn("⚠️ Camera file picker opened, but no image was selected.");
@@ -3210,22 +3329,22 @@ setTimeout(() => {
         if (voiceStatusText) voiceStatusText.textContent = "Sending to Gemini...";
 
         const parsedResult = await runGeminiImageParser(base64Image, file.type || "image/jpeg");
-        
+
         console.log("✅ Gemini Image API responded successfully:", parsedResult);
         if (voiceOverlay) voiceOverlay.classList.add("hidden");
-        
+
         openOrderConfirmation(parsedResult, parsedResult._transcript || `Image note: ${file.name}`);
 
       } catch (err) {
         console.error("❌ Image parsing or API transmission failed:", err);
-        
+
         if (voiceStatusText) voiceStatusText.textContent = "API error. Switching to manual override...";
         if (voiceTranscriptPreview) voiceTranscriptPreview.textContent = err.message;
-        
+
         setTimeout(() => {
           if (voiceOverlay) voiceOverlay.classList.add("hidden");
           openOrderConfirmation(
-            { vendorName: "", items: [], isNewVendor: true, source: "manual" }, 
+            { vendorName: "", items: [], isNewVendor: true, source: "manual" },
             `Image Pipeline Fail — ${file.name}`
           );
         }, 1500);
