@@ -306,7 +306,22 @@
             <button id="close-settings-btn" class="close-btn">&times;</button>
           </div>
           <div class="modal-body">
-            
+
+            <!-- Merchant Mode Toggle -->
+            <div class="merchant-mode-block">
+              <div class="merchant-mode-info">
+                <span class="merchant-mode-title">Session Mode</span>
+                <span id="merchant-mode-label" class="merchant-mode-label">🔵 Dev Mode (Testing)</span>
+              </div>
+              <label class="toggle-switch" title="Toggle between Dev and Merchant mode">
+                <input type="checkbox" id="merchant-mode-toggle" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <p class="help-text" style="margin-top: 4px;">Dev events are tagged <code>dev:true</code> in Firestore. Merchant events are tagged <code>merchant:"sai_pavan"</code>.</p>
+
+            <hr style="border: none; border-top: 1px solid var(--border-color); margin: 14px 0;" />
+
             <div class="form-group margin-top">
               <label>App Theme</label>
               <button id="theme-toggle-btn" class="secondary-btn" style="width: 100%;">Switch to Dark Mode</button>

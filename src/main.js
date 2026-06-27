@@ -101,13 +101,16 @@ const CLOUD_ARCHIVE_COLLECTION = "archives";
 // panel can see exact timestamps of when Sai Pavan used the app without the team present.
 async function logEvent(eventName, metadata = {}) {
   try {
+    const isMerchant = appState.merchantMode === true;
     await addDoc(collection(db, "events"), {
       event: eventName,
       timestamp: serverTimestamp(),
       localTime: new Date().toISOString(),
+      dev: !isMerchant,
+      ...(isMerchant ? { merchant: "sai_pavan" } : { tester: "dev" }),
       ...metadata
     });
-    console.log(`📊 Event logged: ${eventName}`, metadata);
+    console.log(`📊 Event logged: ${eventName} [${isMerchant ? '🟢 Merchant' : '🔵 Dev'}]`, metadata);
   } catch (err) {
     // Never block the user flow for analytics failures
     console.warn("Analytics log failed (non-critical):", err.message);
@@ -120,17 +123,42 @@ function getTodayDate() {
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 }
 
-// Check if day has changed and archive previous day's data
-async function checkAndArchiveDayChange() {
+// Check if day has changed — archive yesterday's data and clear today's orders (dues persist)
+async function checkAndArchiveDayChange(cloudData) {
   const today = getTodayDate();
-  const lastStoredDate = localStorage.getItem("union_packages_last_date");
   
-  if (lastStoredDate && lastStoredDate !== today) {
-    console.log(`📅 Day changed! Archiving data from ${lastStoredDate} to archive bin...`);
-    await archiveDayData(lastStoredDate);
+  // Retrieve the last reset date, looking at cloudData first, then fallback to savedAt, then localStorage
+  let lastResetDate = null;
+  if (cloudData) {
+    if (cloudData.lastResetDate) {
+      lastResetDate = cloudData.lastResetDate;
+    } else if (cloudData.savedAt) {
+      lastResetDate = cloudData.savedAt.substring(0, 10);
+    }
   }
   
-  localStorage.setItem("union_packages_last_date", today);
+  if (!lastResetDate) {
+    lastResetDate = localStorage.getItem("aeonian_last_reset_date");
+  }
+
+  if (lastResetDate && lastResetDate !== today) {
+    console.log(`📅 New day detected! Last reset: ${lastResetDate} → Today: ${today}`);
+    // Archive previous day before clearing
+    await archiveDayData(lastResetDate);
+    // Clear orders for all vendors — dues carry forward
+    appState.vendors.forEach(vendor => {
+      vendor.orders = [];
+      vendor.lastUpdated = 0; // reset bubble-up so all cards are equal at start of day
+    });
+    console.log("✅ Daily reset complete — orders cleared, dues preserved.");
+    // Persist the cleared state immediately so the next load sees clean data
+    appState.lastResetDate = today;
+    await saveStore();
+    logEvent("daily_reset", { previousDate: lastResetDate, today });
+  }
+
+  localStorage.setItem("aeonian_last_reset_date", today);
+  appState.lastResetDate = today;
 }
 
 // Archive previous day's data to Firestore archive collection
@@ -223,22 +251,24 @@ let appState = {
   vendors: [],
   inventory: [],
   purchaseLogs: [],
-  apiKey: ""
+  apiKey: "",
+  merchantMode: false, // false = Dev Mode (events tagged dev:true), true = Merchant Mode (events tagged merchant:"sai_pavan")
+  merchantSnapshot: null,
+  lastResetDate: null
 };
 
 // Initial state setup (CLOUD VERSION)
 async function initStore() {
   console.log("🔄 Initializing app store from cloud...");
   
-  // Check if day has changed and archive previous day's data
-  await checkAndArchiveDayChange();
-  
   const cloudData = await fetchFromCloud();
   
   if (cloudData && cloudData.vendors) {
     console.log("📦 Loading from cloud");
     appState.apiKey = cloudData.credentials?.geminiKey || "";
+    appState.merchantMode = cloudData.credentials?.merchantMode === true;
     appState.purchaseLogs = cloudData.purchaseLogs || [];
+    appState.lastResetDate = cloudData.lastResetDate || null;
     
     if (cloudData.inventory && cloudData.inventory.length > 0) {
       appState.inventory = cloudData.inventory;
@@ -254,6 +284,19 @@ async function initStore() {
         if (!v.history) v.history = [];
       });
     }
+
+    // Load and initialize merchant snapshot (AFTER vendors, inventory, and purchaseLogs are loaded)
+    appState.merchantSnapshot = cloudData.merchantSnapshot || null;
+    if (appState.merchantMode && !appState.merchantSnapshot) {
+      appState.merchantSnapshot = {
+        vendors: JSON.parse(JSON.stringify(appState.vendors)),
+        inventory: JSON.parse(JSON.stringify(appState.inventory)),
+        purchaseLogs: JSON.parse(JSON.stringify(appState.purchaseLogs))
+      };
+    }
+
+    // Run daily reset check AFTER loading cloud data so orders can be cleared
+    await checkAndArchiveDayChange(cloudData);
   } else {
     console.log("📄 Cloud data empty, using defaults");
     appState.inventory = JSON.parse(JSON.stringify(INVENTORY_STATIC_DEFAULTS));
@@ -265,6 +308,7 @@ async function initStore() {
       lastUpdated: 0
     }));
     appState.purchaseLogs = [];
+    appState.lastResetDate = getTodayDate();
     await saveStore();
   }
   
@@ -279,13 +323,30 @@ async function initStore() {
 }
 
 async function saveStore() {
+  // If we are in merchant mode, update the snapshot to the current state before saving
+  if (appState.merchantMode) {
+    appState.merchantSnapshot = {
+      vendors: JSON.parse(JSON.stringify(appState.vendors)),
+      inventory: JSON.parse(JSON.stringify(appState.inventory)),
+      purchaseLogs: JSON.parse(JSON.stringify(appState.purchaseLogs))
+    };
+    try {
+      localStorage.setItem("aeonian_merchant_snapshot", JSON.stringify(appState.merchantSnapshot));
+    } catch (err) {
+      console.error("Failed to save snapshot to localStorage:", err);
+    }
+  }
+
   const dataToSave = {
     vendors: appState.vendors,
     inventory: appState.inventory,
     purchaseLogs: appState.purchaseLogs,
     credentials: {
-      geminiKey: appState.apiKey
+      geminiKey: appState.apiKey,
+      merchantMode: appState.merchantMode
     },
+    merchantSnapshot: appState.merchantSnapshot || null,
+    lastResetDate: appState.lastResetDate || getTodayDate(),
     savedAt: new Date().toISOString()
   };
   console.log("💾 Saving to cloud:", dataToSave);
@@ -1142,6 +1203,16 @@ function renderVendorsList(filterQuery = "") {
           <button class="chip-btn quick-pay-chip" data-index="${originalIndex}" data-value="1000">₹1000</button>
         </div>
       </div>
+      <div class="add-due-panel">
+        <div class="add-due-header">＋ Add Due (Carry-forward / Notebook Sync)</div>
+        <div class="add-due-row">
+          <div class="collection-input-wrapper">
+            <span class="rupee-symbol">₹</span>
+            <input type="number" id="add-due-input-${originalIndex}" class="collection-input add-due-input" placeholder="Enter amount" min="0" data-index="${originalIndex}" />
+          </div>
+          <button class="add-due-confirm-btn" data-index="${originalIndex}">Add</button>
+        </div>
+      </div>
       <button class="vendor-log-link" data-index="${originalIndex}">View month/day logs</button>
       <button class="send-bill-btn" data-index="${originalIndex}">📲 Send Bill</button>
     `;
@@ -1223,6 +1294,32 @@ function renderVendorsList(filterQuery = "") {
       saveStore().catch(console.error);
       renderVendorsList(searchInput.value);
       updateDashboardMetrics();
+    });
+  });
+
+  // Add Due: directly seed a vendor's outstanding due
+  document.querySelectorAll(".add-due-confirm-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.getAttribute("data-index"));
+      const input = document.getElementById(`add-due-input-${idx}`);
+      const val = parseFloat(input.value);
+      if (isNaN(val) || val <= 0) { input.focus(); return; }
+      processAddDue(idx, val);
+      input.value = "";
+    });
+  });
+
+  // Add Due: allow pressing Enter in input
+  document.querySelectorAll(".add-due-input").forEach(input => {
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const idx = parseInt(input.getAttribute("data-index"));
+        const val = parseFloat(input.value);
+        if (isNaN(val) || val <= 0) return;
+        processAddDue(idx, val);
+        input.value = "";
+      }
     });
   });
 
@@ -1557,6 +1654,24 @@ function processCollection(vendorIdx, amount) {
   renderAll();
   
   if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+}
+
+// ----------------------
+// ADD DUE (notebook sync / carry-forward)
+// ----------------------
+function processAddDue(vendorIdx, amount) {
+  const vendor = appState.vendors[vendorIdx];
+  vendor.due += amount;
+  vendor.lastUpdated = Date.now();
+  saveStore().catch(console.error);
+  logEvent("due_added_manual", {
+    vendorName: vendor.name,
+    amount,
+    newDue: vendor.due
+  });
+  renderVendorsList(searchInput.value);
+  updateDashboardMetrics();
+  if (navigator.vibrate) navigator.vibrate(30);
 }
 
 // ----------------------
@@ -2544,6 +2659,11 @@ settingsBtn.addEventListener("click", () => {
   apiKeyInput.value = appState.apiKey;
   apiSaveFeedback.textContent = "";
   apiSaveFeedback.style.color = "";
+  // Sync the merchant mode toggle to current state
+  const toggle = document.getElementById("merchant-mode-toggle");
+  const modeLabel = document.getElementById("merchant-mode-label");
+  if (toggle) toggle.checked = appState.merchantMode === true;
+  if (modeLabel) modeLabel.textContent = appState.merchantMode ? "🟢 Merchant Mode (Sai Pavan)" : "🔵 Dev Mode (Testing)";
   settingsModal.classList.remove("hidden");
 });
 
@@ -2563,6 +2683,59 @@ saveSettingsBtn.addEventListener("click", async () => {
   }
   settingsModal.classList.add("hidden");
   renderAll();
+});
+
+// Merchant Mode toggle — live switch, saved immediately to Firestore
+document.addEventListener("change", async (e) => {
+  if (e.target && e.target.id === "merchant-mode-toggle") {
+    const wasDevMode = !appState.merchantMode;
+    appState.merchantMode = e.target.checked;
+    const modeLabel = document.getElementById("merchant-mode-label");
+    if (modeLabel) {
+      modeLabel.textContent = appState.merchantMode ? "🟢 Merchant Mode (Sai Pavan)" : "🔵 Dev Mode (Testing)";
+    }
+
+    if (appState.merchantMode && wasDevMode) {
+      // Switching from Dev to Merchant Mode!
+      // Restore the snapshot
+      let snapshot = appState.merchantSnapshot;
+      if (!snapshot) {
+        // Try local storage as fallback
+        const localSnap = localStorage.getItem("aeonian_merchant_snapshot");
+        if (localSnap) {
+          try {
+            snapshot = JSON.parse(localSnap);
+          } catch (err) {
+            console.error("Error parsing local snapshot:", err);
+          }
+        }
+      }
+
+      if (snapshot) {
+        console.log("🔄 Restoring merchant state from snapshot...");
+        appState.vendors = JSON.parse(JSON.stringify(snapshot.vendors));
+        appState.inventory = JSON.parse(JSON.stringify(snapshot.inventory));
+        appState.purchaseLogs = JSON.parse(JSON.stringify(snapshot.purchaseLogs || []));
+      } else {
+        console.warn("⚠️ No merchant snapshot found to restore!");
+      }
+    }
+
+    try {
+      await saveStore();
+      logEvent("mode_switched", { merchantMode: appState.merchantMode });
+      console.log(`🔄 Mode switched to: ${appState.merchantMode ? "Merchant" : "Dev"}`);
+      // Re-render UI to reflect restored state or dev status update
+      renderVendorsList(searchInput.value);
+      updateDashboardMetrics();
+      renderAnalytics();
+      renderStockDebitLogs();
+      updateAPIStatusUI();
+      checkStockAlerts();
+    } catch (err) {
+      console.error("Error switching mode, saving or rendering:", err);
+    }
+  }
 });
 
 defaultResetBtn.addEventListener("click", () => {
@@ -2765,7 +2938,7 @@ clearSearchBtn.addEventListener("click", () => {
   renderVendorsList("");
 });
 
-// Update settings UI status labels
+// Update settings UI status labels + merchant mode toggle
 function updateAPIStatusUI() {
   if (appState.apiKey) {
     apiStatusDot.className = "status-dot online";
@@ -2773,6 +2946,13 @@ function updateAPIStatusUI() {
   } else {
     apiStatusDot.className = "status-dot offline";
     apiStatusText.textContent = "Using Local Regex Fallback (Offline)";
+  }
+  // Sync merchant mode toggle state
+  const toggle = document.getElementById("merchant-mode-toggle");
+  const modeLabel = document.getElementById("merchant-mode-label");
+  if (toggle && modeLabel) {
+    toggle.checked = appState.merchantMode === true;
+    modeLabel.textContent = appState.merchantMode ? "🟢 Merchant Mode (Sai Pavan)" : "🔵 Dev Mode (Testing)";
   }
 }
 

@@ -2288,3 +2288,136 @@ body.dark-mode .floating-upload-btn:hover,
 body.dark-mode .floating-voice-btn:hover {
   background-color: #162533;
 }
+
+/* ============================================================
+   ADD DUE PANEL — vendor card notebook sync
+   ============================================================ */
+.add-due-panel {
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  margin-top: 2px;
+}
+
+.add-due-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-blue);
+  margin-bottom: 8px;
+  letter-spacing: 0.1px;
+}
+
+.add-due-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.add-due-confirm-btn {
+  background: var(--accent-blue);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0 16px;
+  height: 36px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.add-due-confirm-btn:hover {
+  background: #1d4ed8;
+}
+
+.add-due-confirm-btn:active {
+  transform: scale(0.96);
+}
+
+/* ============================================================
+   MERCHANT MODE TOGGLE — settings modal
+   ============================================================ */
+.merchant-mode-block {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--glass-04);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-bottom: 4px;
+}
+
+.merchant-mode-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.merchant-mode-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.merchant-mode-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  transition: color 0.2s;
+}
+
+/* iOS-style toggle switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--glass-10);
+  border-radius: 26px;
+  transition: background 0.2s ease;
+  border: 1px solid var(--border-color);
+}
+
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 2px;
+  top: 2px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+  background: var(--accent-green);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
