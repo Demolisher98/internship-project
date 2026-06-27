@@ -2583,9 +2583,6 @@ function addItemRow(selectedName = "", qty = 1, price = null) {
     select.value = selectedName;
   }
 
-  const qtyContainer = document.createElement("div");
-  qtyContainer.className = "confirm-qty-container";
-
   const qtyInput = document.createElement("input");
   qtyInput.type = "number";
   qtyInput.className = "confirm-qty-input";
@@ -2599,7 +2596,7 @@ function addItemRow(selectedName = "", qty = 1, price = null) {
   const upArrow = document.createElement("button");
   upArrow.type = "button";
   upArrow.className = "confirm-qty-arrow up";
-  upArrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>`;
+  upArrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>`;
   upArrow.title = "Increase Quantity";
   upArrow.addEventListener("click", () => {
     let currentVal = parseInt(qtyInput.value) || 0;
@@ -2610,7 +2607,7 @@ function addItemRow(selectedName = "", qty = 1, price = null) {
   const downArrow = document.createElement("button");
   downArrow.type = "button";
   downArrow.className = "confirm-qty-arrow down";
-  downArrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+  downArrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
   downArrow.title = "Decrease Quantity";
   downArrow.addEventListener("click", () => {
     let currentVal = parseInt(qtyInput.value) || 0;
@@ -2623,8 +2620,6 @@ function addItemRow(selectedName = "", qty = 1, price = null) {
 
   arrowContainer.appendChild(upArrow);
   arrowContainer.appendChild(downArrow);
-  qtyContainer.appendChild(qtyInput);
-  qtyContainer.appendChild(arrowContainer);
 
   const priceInput = document.createElement("input");
   priceInput.type = "number";
@@ -2655,8 +2650,9 @@ function addItemRow(selectedName = "", qty = 1, price = null) {
   priceInput.addEventListener("input", recalculateConfirmationTotals);
 
   row.appendChild(select);
-  row.appendChild(qtyContainer);
   row.appendChild(priceInput);
+  row.appendChild(qtyInput);
+  row.appendChild(arrowContainer);
   row.appendChild(removeBtn);
   confirmItemsList.appendChild(row);
 }

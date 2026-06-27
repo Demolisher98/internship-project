@@ -2008,13 +2008,6 @@ body {
   border-color: var(--accent-blue);
 }
 
-.confirm-qty-container {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
 .confirm-qty-arrows {
   display: flex;
   flex-direction: column;
@@ -2032,7 +2025,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 0;
-  width: 24px;
+  width: 32px;
   height: 16px;
   border-radius: 4px;
   transition: background-color 0.15s, border-color 0.15s, color 0.15s;
