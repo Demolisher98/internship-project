@@ -597,6 +597,13 @@ tabButtons.forEach(btn => {
       renderStockDebitLogs();
     } else if (target === "view-analytics") {
       renderAnalytics();
+      // Redraw canvas charts after tab is visible (offsetWidth resolves correctly)
+      requestAnimationFrame(() => {
+        const analytics = getBusinessAnalytics();
+        drawDonutChart(analytics.totalCollected, analytics.totalDue);
+        const positiveProfitRows = analytics.products.filter(item => item.profit > 0);
+        drawBarChart(positiveProfitRows, "profit", v => formatCurrency(v));
+      });
     } else if (target === "view-directory") {
       renderDirectoryList();
     } else if (target === "view-stalls") {
@@ -956,6 +963,159 @@ async function resetSelectedMonthAnalytics() {
   await renderAll();
 }
 
+// ── Subtab wiring (runs once after DOM ready) ─────────────────
+function initAnalyticsSubtabs() {
+  document.querySelectorAll(".analytics-subtab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".analytics-subtab").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".analytics-subtab-panel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      const panel = document.getElementById(`subtab-${btn.dataset.subtab}`);
+      if (panel) panel.classList.add("active");
+    });
+  });
+}
+
+// ── Donut chart ────────────────────────────────────────────────
+function drawDonutChart(collected, outstanding) {
+  const canvas = document.getElementById("analytics-donut-canvas");
+  const legend = document.getElementById("analytics-donut-legend");
+  if (!canvas || !legend) return;
+
+  const ctx = canvas.getContext("2d");
+  const W = 200, H = 200, cx = W / 2, cy = H / 2, R = 74, inner = 46;
+  const total = collected + outstanding;
+
+  ctx.clearRect(0, 0, W, H);
+
+  if (total === 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = R - inner;
+    ctx.stroke();
+  } else {
+    const segments = [
+      { value: collected, color: "#10b981" },
+      { value: outstanding, color: "#f59e0b" }
+    ];
+    let startAngle = -Math.PI / 2;
+    const gap = 0.03;
+    segments.forEach(seg => {
+      const sweep = (seg.value / total) * (Math.PI * 2) - gap;
+      if (sweep <= 0) return;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, startAngle, startAngle + sweep);
+      ctx.arc(cx, cy, inner, startAngle + sweep, startAngle, true);
+      ctx.closePath();
+      ctx.fillStyle = seg.color;
+      ctx.fill();
+      startAngle += sweep + gap;
+    });
+  }
+
+  // Center label
+  const isDark = document.body.classList.contains("dark-mode");
+  ctx.fillStyle = isDark ? "#f1f5f9" : "#0f172a";
+  ctx.font = "bold 18px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(total > 0 ? `${Math.round((collected / total) * 100)}%` : "—", cx, cy - 8);
+  ctx.font = "11px system-ui, sans-serif";
+  ctx.fillStyle = isDark ? "#94a3b8" : "#64748b";
+  ctx.fillText("collected", cx, cy + 12);
+  ctx.textBaseline = "alphabetic";
+
+  // Legend
+  legend.innerHTML = [
+    { label: "Collected", value: formatCurrency(collected), color: "#10b981" },
+    { label: "Outstanding", value: formatCurrency(outstanding), color: "#f59e0b" }
+  ].map(item => `
+    <div class="donut-legend-item">
+      <div class="donut-legend-dot" style="background:${item.color}"></div>
+      <div>
+        <div class="donut-legend-value">${item.value}</div>
+        <div class="donut-legend-label">${item.label}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+// ── Horizontal bar chart (canvas) ─────────────────────────────
+function drawBarChart(rows, valueKey, valueFormatter) {
+  const canvas = document.getElementById("analytics-bar-canvas");
+  if (!canvas) return;
+
+  const TOP = rows.slice(0, 8); // show top 8 only
+  if (TOP.length === 0) {
+    canvas.style.display = "none";
+    return;
+  }
+  canvas.style.display = "block";
+
+  const BAR_H = 28, GAP = 10, PAD_L = 110, PAD_R = 70, PAD_Y = 12;
+  const W = canvas.offsetWidth || 340;
+  const H = TOP.length * (BAR_H + GAP) + PAD_Y * 2;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  canvas.style.height = H + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  const isDark = document.body.classList.contains("dark-mode");
+  const textMain = isDark ? "#f1f5f9" : "#0f172a";
+  const textMuted = isDark ? "#94a3b8" : "#64748b";
+  const maxVal = Math.max(...TOP.map(r => r[valueKey]), 1);
+  const barW = W - PAD_L - PAD_R;
+
+  TOP.forEach((row, i) => {
+    const y = PAD_Y + i * (BAR_H + GAP);
+    const fillW = Math.max((row[valueKey] / maxVal) * barW, 4);
+    const pct = Math.round((row[valueKey] / maxVal) * 100);
+
+    // Background track
+    ctx.fillStyle = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+    roundRectFill(ctx, PAD_L, y + 4, barW, BAR_H - 8, 4);
+
+    // Filled bar — green gradient
+    const grad = ctx.createLinearGradient(PAD_L, 0, PAD_L + barW, 0);
+    grad.addColorStop(0, "#10b981");
+    grad.addColorStop(1, "#059669");
+    ctx.fillStyle = grad;
+    roundRectFill(ctx, PAD_L, y + 4, fillW, BAR_H - 8, 4);
+
+    // Product name (truncated)
+    ctx.fillStyle = textMain;
+    ctx.font = `600 12px system-ui, sans-serif`;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    const name = row.name.length > 13 ? row.name.slice(0, 13) + "…" : row.name;
+    ctx.fillText(name, PAD_L - 8, y + BAR_H / 2);
+
+    // Value
+    ctx.fillStyle = textMuted;
+    ctx.font = `600 11px system-ui, sans-serif`;
+    ctx.textAlign = "left";
+    ctx.fillText(valueFormatter(row[valueKey]), PAD_L + fillW + 6, y + BAR_H / 2);
+  });
+  ctx.textBaseline = "alphabetic";
+}
+
+function roundRectFill(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
 function renderAnalytics() {
   syncAnalyticsMonthSelect();
   const analytics = getBusinessAnalytics();
@@ -972,10 +1132,14 @@ function renderAnalytics() {
   const topProfitProduct = analytics.products[0];
   analyticsBestProduct.textContent = topProfitProduct ? `Best: ${topProfitProduct.name}` : "No sales yet";
 
-  const positiveProfitRows = analytics.products.filter(item => item.profit > 0);
-  const totalPositiveProfit = positiveProfitRows.reduce((sum, item) => sum + item.profit, 0);
-  renderAnalyticsBarList(analyticsProfitChart, positiveProfitRows, "profit", totalPositiveProfit, formatCurrency);
+  // Donut chart
+  drawDonutChart(analytics.totalCollected, analytics.totalDue);
 
+  // Bar chart — profit by product
+  const positiveProfitRows = analytics.products.filter(item => item.profit > 0);
+  drawBarChart(positiveProfitRows, "profit", v => formatCurrency(v));
+
+  // Sales mix (existing bar list)
   const salesMixRows = [...analytics.products].sort((a, b) => b.sales - a.sales);
   const totalSalesMix = salesMixRows.reduce((sum, item) => sum + item.sales, 0);
   renderAnalyticsBarList(analyticsSalesMix, salesMixRows, "sales", totalSalesMix, formatCurrency);
@@ -3188,7 +3352,9 @@ async function renderAll() {
   console.log("✨ App rendered successfully");
 }
 
-renderAll();
+renderAll().then(() => {
+  initAnalyticsSubtabs();
+});
 
 
 // ============================================================

@@ -166,79 +166,110 @@
           <p>Track sales, profit, collections, product movement, and inventory risk</p>
         </div>
 
+        <!-- Month selector + sub-tabs -->
+        <div class="analytics-topbar">
+          <select id="analytics-month-select" class="analytics-month-select" aria-label="Analytics month"></select>
+          <div class="analytics-subtabs">
+            <button class="analytics-subtab active" data-subtab="overview">Overview</button>
+            <button class="analytics-subtab" data-subtab="products">Products</button>
+            <button class="analytics-subtab" data-subtab="vendors">Vendors</button>
+            <button class="analytics-subtab" data-subtab="stock">Stock</button>
+          </div>
+        </div>
+
         <main class="analytics-scroll-area flex-1 padding-20">
-          <section class="analytics-controls-card">
-            <div>
-              <span class="kpi-label">Month View</span>
-              <p>Each month is tracked separately; outstanding dues stay live.</p>
-            </div>
-            <select id="analytics-month-select" class="analytics-month-select" aria-label="Analytics month"></select>
-          </section>
 
-          <section class="analytics-kpi-grid">
-            <div class="analytics-kpi-card">
-              <span class="kpi-label">Total Sales</span>
-              <strong id="analytics-total-sales">₹0</strong>
-              <span class="kpi-caption">Recorded order value</span>
-            </div>
-            <div class="analytics-kpi-card">
-              <span class="kpi-label">Gross Profit</span>
-              <strong id="analytics-total-profit">₹0</strong>
-              <span id="analytics-profit-margin" class="kpi-caption">0% margin</span>
-            </div>
-            <div class="analytics-kpi-card">
-              <span class="kpi-label">Collected</span>
-              <strong id="analytics-total-collected">₹0</strong>
-              <span id="analytics-collection-rate" class="kpi-caption">0% collected</span>
-            </div>
-            <div class="analytics-kpi-card">
-              <span class="kpi-label">Outstanding</span>
-              <strong id="analytics-total-due">₹0</strong>
-              <span id="analytics-active-vendors" class="kpi-caption">0 vendors pending</span>
-            </div>
-          </section>
-
-          <section class="analytics-card">
-            <div class="analytics-card-header">
-              <div>
-                <h3>Profit by Product</h3>
-                <p>Which items are creating the most gross profit</p>
+          <!-- ── OVERVIEW TAB ── -->
+          <div class="analytics-subtab-panel active" id="subtab-overview">
+            <section class="analytics-kpi-grid">
+              <div class="analytics-kpi-card">
+                <span class="kpi-label">Total Sales</span>
+                <strong id="analytics-total-sales">₹0</strong>
+                <span class="kpi-caption">Recorded order value</span>
               </div>
-              <span id="analytics-best-product" class="analytics-chip">No sales yet</span>
-            </div>
-            <div id="analytics-profit-chart" class="bar-chart-list"></div>
-          </section>
-
-          <section class="analytics-card">
-            <div class="analytics-card-header">
-              <div>
-                <h3>Sales Mix</h3>
-                <p>Revenue share across your top products</p>
+              <div class="analytics-kpi-card accent-green">
+                <span class="kpi-label">Gross Profit</span>
+                <strong id="analytics-total-profit">₹0</strong>
+                <span id="analytics-profit-margin" class="kpi-caption">0% margin</span>
               </div>
-            </div>
-            <div id="analytics-sales-mix" class="mix-chart"></div>
-          </section>
-
-          <section class="analytics-card">
-            <div class="analytics-card-header">
-              <div>
-                <h3>Vendor Dues</h3>
-                <p>Highest pending balances to collect tonight</p>
+              <div class="analytics-kpi-card">
+                <span class="kpi-label">Collected</span>
+                <strong id="analytics-total-collected">₹0</strong>
+                <span id="analytics-collection-rate" class="kpi-caption">0% collected</span>
               </div>
-            </div>
-            <div id="analytics-vendor-dues" class="ranked-list"></div>
-          </section>
-
-          <section class="analytics-card">
-            <div class="analytics-card-header">
-              <div>
-                <h3>Inventory Risk</h3>
-                <p>Items closest to stockout based on configured limits</p>
+              <div class="analytics-kpi-card accent-amber">
+                <span class="kpi-label">Outstanding</span>
+                <strong id="analytics-total-due">₹0</strong>
+                <span id="analytics-active-vendors" class="kpi-caption">0 vendors pending</span>
               </div>
-              <span id="analytics-low-stock-count" class="analytics-chip danger">0 low</span>
-            </div>
-            <div id="analytics-inventory-risk" class="ranked-list compact"></div>
-          </section>
+            </section>
+
+            <!-- Donut chart: collected vs outstanding -->
+            <section class="analytics-card">
+              <div class="analytics-card-header">
+                <div>
+                  <h3>Collection Status</h3>
+                  <p>Collected vs outstanding this month</p>
+                </div>
+              </div>
+              <div class="analytics-donut-wrap">
+                <canvas id="analytics-donut-canvas" width="200" height="200"></canvas>
+                <div class="analytics-donut-legend" id="analytics-donut-legend"></div>
+              </div>
+            </section>
+          </div>
+
+          <!-- ── PRODUCTS TAB ── -->
+          <div class="analytics-subtab-panel" id="subtab-products">
+            <section class="analytics-card">
+              <div class="analytics-card-header">
+                <div>
+                  <h3>Profit by Product</h3>
+                  <p>Which items drive the most gross profit</p>
+                </div>
+                <span id="analytics-best-product" class="analytics-chip">No sales yet</span>
+              </div>
+              <canvas id="analytics-bar-canvas" width="340" height="260"></canvas>
+            </section>
+
+            <section class="analytics-card">
+              <div class="analytics-card-header">
+                <div>
+                  <h3>Sales Mix</h3>
+                  <p>Revenue share across products</p>
+                </div>
+              </div>
+              <div id="analytics-sales-mix" class="mix-chart"></div>
+            </section>
+          </div>
+
+          <!-- ── VENDORS TAB ── -->
+          <div class="analytics-subtab-panel" id="subtab-vendors">
+            <section class="analytics-card">
+              <div class="analytics-card-header">
+                <div>
+                  <h3>Vendor Dues</h3>
+                  <p>Highest pending balances to collect tonight</p>
+                </div>
+              </div>
+              <div id="analytics-vendor-dues" class="ranked-list"></div>
+            </section>
+          </div>
+
+          <!-- ── STOCK TAB ── -->
+          <div class="analytics-subtab-panel" id="subtab-stock">
+            <section class="analytics-card">
+              <div class="analytics-card-header">
+                <div>
+                  <h3>Inventory Risk</h3>
+                  <p>Items closest to stockout</p>
+                </div>
+                <span id="analytics-low-stock-count" class="analytics-chip danger">0 low</span>
+              </div>
+              <div id="analytics-inventory-risk" class="ranked-list compact"></div>
+            </section>
+          </div>
+
         </main>
       </div>
 

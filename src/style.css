@@ -1107,6 +1107,127 @@ body {
   border-color: var(--border-color-focus);
 }
 
+/* ── Analytics topbar + subtabs ─────────────────────────────── */
+.analytics-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-surface);
+}
+
+.analytics-subtabs {
+  display: flex;
+  gap: 4px;
+}
+
+.analytics-subtab {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.analytics-subtab:hover {
+  background: var(--glass-03);
+  color: var(--text-main);
+}
+
+.analytics-subtab.active {
+  background: var(--glass-05);
+  border-color: var(--border-color);
+  color: var(--accent-green);
+}
+
+.analytics-subtab-panel {
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.analytics-subtab-panel.active {
+  display: flex;
+}
+
+/* ── KPI card accent variants ────────────────────────────────── */
+.analytics-kpi-card.accent-green {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.analytics-kpi-card.accent-green strong {
+  color: var(--accent-green);
+}
+
+.analytics-kpi-card.accent-amber {
+  border-color: rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.analytics-kpi-card.accent-amber strong {
+  color: var(--accent-gold, #f59e0b);
+}
+
+/* ── Donut chart ─────────────────────────────────────────────── */
+.analytics-donut-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 8px 0 4px;
+  flex-wrap: wrap;
+}
+
+.analytics-donut-wrap canvas {
+  flex-shrink: 0;
+}
+
+.analytics-donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.donut-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.donut-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.donut-legend-label {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.donut-legend-value {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 13px;
+}
+
+/* ── Bar chart canvas ────────────────────────────────────────── */
+#analytics-bar-canvas {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
 .analytics-kpi-card,
 .analytics-card {
   background: var(--bg-surface);
