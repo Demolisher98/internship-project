@@ -429,7 +429,7 @@ body {
 .vendors-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   padding-bottom: 80px;
 }
 
@@ -447,17 +447,65 @@ body {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 16px;
+  border-radius: 14px;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
   box-shadow: var(--shadow-sm);
-  transition: all 0.2s ease;
+  overflow: hidden;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
 .vendor-card:hover {
   border-color: var(--glass-10);
+  transform: translateY(-1px);
+}
+
+.vendor-card.expanded {
+  border-color: rgba(59, 130, 246, 0.22);
+  box-shadow: var(--shadow-md);
+}
+
+.vendor-card-summary {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px 10px 14px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--glass-03), var(--glass-02));
+}
+
+.vendor-card-summary:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.36);
+}
+
+.vendor-summary-main {
+  min-width: 0;
+}
+
+.vendor-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 14px 14px 14px;
+  animation: vendorDetailsIn 0.22s ease both;
+}
+
+@keyframes vendorDetailsIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.vendor-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--glass-05);
+  padding-top: 10px;
 }
 
 .vendor-card-header {
@@ -471,6 +519,9 @@ body {
   font-weight: 600;
   color: var(--text-main);
   letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .vendor-date {
@@ -585,17 +636,23 @@ body {
   background: var(--accent-green, #10b981);
   color: #fff;
   border: none;
-  border-radius: 6px;
-  padding: 5px 10px;
+  border-radius: 8px;
+  padding: 8px 12px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
-  transition: opacity 0.15s;
+  transition: transform 0.16s ease, opacity 0.16s ease, box-shadow 0.16s ease;
+  box-shadow: 0 8px 18px rgba(16, 185, 129, 0.18);
 }
 
 .add-order-btn:hover {
   opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.add-order-btn:active {
+  transform: scale(0.96);
 }
 
 /* Card Financial Row & Badge */
@@ -2392,103 +2449,87 @@ body {
   letter-spacing: 0.2px;
 }
 
-/* ============================================================
-   FLOATING AUDIO INTERACTIONS GROUP (CLEAN DESIGN)
-   ============================================================ */
-
-/* ============================================================
-   FLOATING AUDIO INTERACTIONS GROUP (CLEAN DESIGN)
-   ============================================================ */
-
 .audio-actions-group {
-  position: absolute;
-  bottom: 80px;       /* Anchored cleanly directly above the bottom tab nav bar */
-  right: 20px;        /* Consistent right padding inside the app container */
-  display: flex;
-  flex-direction: column;
-  gap: 12px;          /* Clean stacked vertical spacing */
+  position: static;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
   align-items: center;
-  z-index: 99;
+  margin-top: 10px;
+  padding: 4px 2px 0;
 }
 
-.floating-upload-btn,
-.floating-camera-btn,
-.floating-voice-btn {
+.capture-action-btn {
   border: none;
-  border-radius: 50%;
+  border-radius: 14px;
+  min-height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: var(--shadow-md), 0 4px 10px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
-              background-color 0.2s ease, 
-              box-shadow 0.2s ease,
-              border-color 0.2s ease;
-  
-  /* Shared default light mode styling to match the file upload button appearance */
-  background-color: var(--bg-surface-solid);
-  color: var(--accent-blue);
+  background: var(--bg-surface-solid);
+  color: var(--text-main);
   border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  animation: captureBarIn 0.34s ease both;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
-/* Call Recording Upload Button layout dimensions */
-.floating-upload-btn {
-  width: 46px;
-  height: 46px;
+.capture-action-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18), transparent 58%);
+  transition: opacity 0.18s ease;
 }
 
-/* Camera Note Upload Button layout dimensions */
-.floating-camera-btn {
-  width: 46px;
-  height: 46px;
+.capture-action-btn svg {
+  position: relative;
+  z-index: 1;
+}
+
+.capture-action-btn.upload {
+  color: #0891b2;
+  animation-delay: 0.02s;
+}
+
+.capture-action-btn.camera {
   color: var(--accent-amber);
+  animation-delay: 0.08s;
 }
 
-/* Standard Voice Microphone Trigger Button layout dimensions */
-.floating-voice-btn {
-  width: 56px;
-  height: 56px;
+.capture-action-btn.mic {
+  color: var(--accent-green);
+  animation-delay: 0.14s;
+}
+
+.capture-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--glass-15);
+  background: var(--bg-card);
+}
+
+.capture-action-btn:hover::before {
+  opacity: 1;
+}
+
+.capture-action-btn:active {
+  transform: scale(0.96);
+}
+
+@keyframes captureBarIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Upgraded icon matching context */
 .mic-icon {
   width: 22px;
   height: 22px;
-}
-
-/* Clean UI micro-interactions handling hover scale scaling safely */
-.floating-upload-btn:hover,
-.floating-camera-btn:hover,
-.floating-voice-btn:hover {
-  transform: scale(1.05);
-  background-color: var(--bg-dark);
-}
-
-.floating-upload-btn:active,
-.floating-camera-btn:active,
-.floating-voice-btn:active {
-  transform: scale(0.95);
-}
-
-/* Dark Mode Color Consistency Adjustments */
-body.dark-mode .floating-upload-btn,
-body.dark-mode .floating-voice-btn {
-  background-color: #111827; 
-  color: #4ecdc4;            /* Matches soft accent teal styling palette */
-  border: 1px solid var(--border-color);
-}
-
-body.dark-mode .floating-camera-btn {
-  background-color: #111827;
-  color: var(--accent-amber);
-  border: 1px solid var(--border-color);
-}
-
-body.dark-mode .floating-upload-btn:hover,
-body.dark-mode .floating-camera-btn:hover,
-body.dark-mode .floating-voice-btn:hover {
-  background-color: #162533;
 }
 
 /* ============================================================

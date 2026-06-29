@@ -445,6 +445,7 @@ const vendorLogDateFilter = document.getElementById("vendor-log-date-filter");
 const clearVendorLogDateBtn = document.getElementById("clear-vendor-log-date-btn");
 let activeVendorLogIndex = null;
 let selectedStockLogMonth = getMonthKey(new Date());
+let expandedVendorIndex = null;
 
 // Navigation Tabs
 const tabButtons = document.querySelectorAll(".app-tab-bar .tab-btn");
@@ -1398,8 +1399,10 @@ function renderVendorsList(filterQuery = "") {
 
   sorted.forEach((vendor) => {
     const originalIndex = appState.vendors.findIndex(v => v.name === vendor.name);
+    const isExpanded = expandedVendorIndex === originalIndex;
     const card = document.createElement("div");
-    card.className = "vendor-card";
+    card.className = `vendor-card ${isExpanded ? "expanded" : "collapsed"}`;
+    card.setAttribute("data-index", originalIndex);
 
     let ordersMarkup = "";
     if (vendor.orders && vendor.orders.length > 0) {
@@ -1437,75 +1440,99 @@ function renderVendorsList(filterQuery = "") {
     }
 
     card.innerHTML = `
-      <div class="vendor-card-header">
-        <div>
+      <div class="vendor-card-summary" data-index="${originalIndex}" role="button" tabindex="0" aria-expanded="${isExpanded}">
+        <div class="vendor-summary-main">
           <h2 class="vendor-title">${vendor.name}</h2>
-          <div class="vendor-date">${vendor.lastUpdated > 0 ? `Updated ${new Date(vendor.lastUpdated).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 'No recent activity'}</div>
         </div>
-        <div class="vendor-card-actions">
-          <button class="add-order-btn" data-index="${originalIndex}" title="Add Order Manually">+ Order</button>
-          <button class="delete-vendor-btn" data-index="${originalIndex}" title="Reset Dues & Orders">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              <line x1="10" y1="11" x2="10" y2="17"></line>
-              <line x1="14" y1="11" x2="14" y2="17"></line>
-            </svg>
-          </button>
-        </div>
+        <button class="add-order-btn" data-index="${originalIndex}" title="Add Order Manually">+ Order</button>
       </div>
 
-      ${ordersMarkup}
-
-      <div class="vendor-financial-summary">
-        <div class="financial-label-group">
-          <span class="financial-label">Due Amount</span>
-          <span class="due-amount-display ${vendor.due === 0 ? 'paid' : ''}">₹${vendor.due}</span>
-        </div>
-        <span class="status-badge ${vendor.due === 0 ? 'paid' : 'pending'}">
-          ${vendor.due === 0 ? 'Paid' : 'Pending'}
-        </span>
-      </div>
-
-      <div class="collection-panel">
-        <div class="collection-header">
-          <span>Night Collection (10:30-11:00 PM)</span>
-          ${historyLabel}
-        </div>
-        <div class="collection-input-row">
-          <div class="collection-input-wrapper">
-            <span class="rupee-symbol">₹</span>
-            <input type="number"
-                   id="collect-input-${originalIndex}"
-                   class="collection-input"
-                   placeholder="Enter cash amount"
-                   min="0"
-                   max="${vendor.due}" />
+      ${isExpanded ? `
+        <div class="vendor-card-details">
+          <div class="vendor-detail-header">
+            <div class="vendor-date">${vendor.lastUpdated > 0 ? `Updated ${new Date(vendor.lastUpdated).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 'No recent activity'}</div>
+            <button class="delete-vendor-btn" data-index="${originalIndex}" title="Reset Dues & Orders">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </button>
           </div>
-          <button class="collect-btn" data-index="${originalIndex}">Collect</button>
-        </div>
-        <div class="quick-pay-chips">
-          <button class="chip-btn quick-pay-chip" data-index="${originalIndex}" data-value="${vendor.due}">Clear Full</button>
-          <button class="chip-btn quick-pay-chip" data-index="${originalIndex}" data-value="100">₹100</button>
-          <button class="chip-btn quick-pay-chip" data-index="${originalIndex}" data-value="500">₹500</button>
-          <button class="chip-btn quick-pay-chip" data-index="${originalIndex}" data-value="1000">₹1000</button>
-        </div>
-      </div>
-      <div class="add-due-panel">
-        <div class="add-due-header">＋ Add Due (Carry-forward / Notebook Sync)</div>
-        <div class="add-due-row">
-          <div class="collection-input-wrapper">
-            <span class="rupee-symbol">₹</span>
-            <input type="number" id="add-due-input-${originalIndex}" class="collection-input add-due-input" placeholder="Enter amount" min="0" data-index="${originalIndex}" />
+
+          ${ordersMarkup}
+
+          <div class="vendor-financial-summary">
+            <div class="financial-label-group">
+              <span class="financial-label">Due Amount</span>
+              <span class="due-amount-display ${vendor.due === 0 ? 'paid' : ''}">${formatCurrency(vendor.due)}</span>
+            </div>
+            <span class="status-badge ${vendor.due === 0 ? 'paid' : 'pending'}">
+              ${vendor.due === 0 ? 'Paid' : 'Pending'}
+            </span>
           </div>
-          <button class="add-due-confirm-btn" data-index="${originalIndex}">Add</button>
+
+          <div class="collection-panel">
+            <div class="collection-header">
+              <span>Night Collection (10:30-11:00 PM)</span>
+              ${historyLabel}
+            </div>
+            <div class="collection-input-row">
+              <div class="collection-input-wrapper">
+                <span class="rupee-symbol">&#8377;</span>
+                <input type="number"
+                       id="collect-input-${originalIndex}"
+                       class="collection-input"
+                       placeholder="Enter cash amount"
+                       min="0"
+                       max="${vendor.due}" />
+              </div>
+              <button class="collect-btn" data-index="${originalIndex}">Collect</button>
+            </div>
+            <div class="quick-pay-chips">
+              <button class="chip-btn quick-pay-chip" data-index="${originalIndex}" data-value="${vendor.due}">Clear Full</button>
+              <button class="chip-btn quick-pay-chip" data-index="${originalIndex}" data-value="100">${formatCurrency(100)}</button>
+              <button class="chip-btn quick-pay-chip" data-index="${originalIndex}" data-value="500">${formatCurrency(500)}</button>
+              <button class="chip-btn quick-pay-chip" data-index="${originalIndex}" data-value="1000">${formatCurrency(1000)}</button>
+            </div>
+          </div>
+          <div class="add-due-panel">
+            <div class="add-due-header">+ Add Due (Carry-forward / Notebook Sync)</div>
+            <div class="add-due-row">
+              <div class="collection-input-wrapper">
+                <span class="rupee-symbol">&#8377;</span>
+                <input type="number" id="add-due-input-${originalIndex}" class="collection-input add-due-input" placeholder="Enter amount" min="0" data-index="${originalIndex}" />
+              </div>
+              <button class="add-due-confirm-btn" data-index="${originalIndex}">Add</button>
+            </div>
+          </div>
+          <button class="vendor-log-link" data-index="${originalIndex}">View month/day logs</button>
+          <button class="send-bill-btn" data-index="${originalIndex}">Send Bill</button>
         </div>
-      </div>
-      <button class="vendor-log-link" data-index="${originalIndex}">View month/day logs</button>
-      <button class="send-bill-btn" data-index="${originalIndex}">📲 Send Bill</button>
+      ` : ""}
     `;
 
     vendorsContainer.appendChild(card);
+  });
+
+  document.querySelectorAll(".vendor-card-summary").forEach(summary => {
+    const toggleCard = () => {
+      const idx = parseInt(summary.getAttribute("data-index"));
+      expandedVendorIndex = expandedVendorIndex === idx ? null : idx;
+      renderVendorsList(searchInput.value);
+    };
+
+    summary.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      toggleCard();
+    });
+
+    summary.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      toggleCard();
+    });
   });
 
   // Manual order entry per vendor card
