@@ -145,6 +145,7 @@ async function checkAndArchiveDayChange(cloudData) {
     console.log(`📅 New day detected! Last reset: ${lastResetDate} → Today: ${today}`);
     // Archive previous day before clearing
     await archiveDayData(lastResetDate);
+    archiveCurrentOrdersForLogs(lastResetDate);
     // Clear orders for all vendors — dues carry forward
     appState.vendors.forEach(vendor => {
       vendor.orders = [];
@@ -181,6 +182,31 @@ async function archiveDayData(dateStr) {
   }
 }
 
+function archiveCurrentOrdersForLogs(dateStr) {
+  const archivedAt = new Date().toISOString();
+  const existingKeys = new Set((appState.archivedDailyLogs || []).map(log => log.archiveKey));
+  const newLogs = [];
+
+  appState.vendors.forEach(vendor => {
+    (vendor.orders || []).forEach((order, orderIdx) => {
+      const timestamp = order.timestamp || `${dateStr}T23:59:59.000Z`;
+      const archiveKey = `${dateStr}|${vendor.name}|${timestamp}|${order.itemName}|${order.quantity}|${order.sp}|${orderIdx}`;
+      if (existingKeys.has(archiveKey)) return;
+
+      newLogs.push({
+        ...order,
+        vendorName: vendor.name,
+        archivedFromDate: dateStr,
+        archivedAt,
+        archiveKey,
+        source: "daily_reset"
+      });
+    });
+  });
+
+  appState.archivedDailyLogs = [...(appState.archivedDailyLogs || []), ...newLogs];
+}
+
 // Archive selected month's data to Firestore archive collection
 async function archiveMonthData(monthKey) {
   try {
@@ -190,7 +216,10 @@ async function archiveMonthData(monthKey) {
       name: vendor.name,
       due: vendor.due,
       lastUpdated: vendor.lastUpdated,
-      orders: (vendor.orders || []).filter(entry => getRecordMonth(entry) === monthKey),
+      orders: [
+        ...(vendor.orders || []),
+        ...(appState.archivedDailyLogs || []).filter(entry => entry.vendorName === vendor.name)
+      ].filter(entry => getRecordMonth(entry) === monthKey),
       history: (vendor.history || []).filter(entry => getRecordMonth(entry) === monthKey)
     }));
 
@@ -202,6 +231,7 @@ async function archiveMonthData(monthKey) {
       vendors: monthVendors,
       inventory: appState.inventory,
       purchaseLogs: monthLogs,
+      archivedDailyLogs: (appState.archivedDailyLogs || []).filter(log => getRecordMonth(log) === monthKey),
       archiveType: "monthly"
     };
 
@@ -251,6 +281,7 @@ let appState = {
   vendors: [],
   inventory: [],
   purchaseLogs: [],
+  archivedDailyLogs: [],
   apiKey: "",
   merchantMode: false, // false = Dev Mode (events tagged dev:true), true = Merchant Mode (events tagged merchant:"sai_pavan")
   merchantSnapshot: null,
@@ -268,6 +299,7 @@ async function initStore() {
     appState.apiKey = cloudData.credentials?.geminiKey || "";
     appState.merchantMode = cloudData.credentials?.merchantMode === true;
     appState.purchaseLogs = cloudData.purchaseLogs || [];
+    appState.archivedDailyLogs = cloudData.archivedDailyLogs || [];
     appState.lastResetDate = cloudData.lastResetDate || null;
 
     if (cloudData.inventory && cloudData.inventory.length > 0) {
@@ -291,7 +323,8 @@ async function initStore() {
       appState.merchantSnapshot = {
         vendors: JSON.parse(JSON.stringify(appState.vendors)),
         inventory: JSON.parse(JSON.stringify(appState.inventory)),
-        purchaseLogs: JSON.parse(JSON.stringify(appState.purchaseLogs))
+        purchaseLogs: JSON.parse(JSON.stringify(appState.purchaseLogs)),
+        archivedDailyLogs: JSON.parse(JSON.stringify(appState.archivedDailyLogs))
       };
     }
 
@@ -308,6 +341,7 @@ async function initStore() {
       lastUpdated: 0
     }));
     appState.purchaseLogs = [];
+    appState.archivedDailyLogs = [];
     appState.lastResetDate = getTodayDate();
     await saveStore();
   }
@@ -328,7 +362,8 @@ async function saveStore() {
     appState.merchantSnapshot = {
       vendors: JSON.parse(JSON.stringify(appState.vendors)),
       inventory: JSON.parse(JSON.stringify(appState.inventory)),
-      purchaseLogs: JSON.parse(JSON.stringify(appState.purchaseLogs))
+      purchaseLogs: JSON.parse(JSON.stringify(appState.purchaseLogs)),
+      archivedDailyLogs: JSON.parse(JSON.stringify(appState.archivedDailyLogs))
     };
     try {
       localStorage.setItem("aeonian_merchant_snapshot", JSON.stringify(appState.merchantSnapshot));
@@ -341,6 +376,7 @@ async function saveStore() {
     vendors: appState.vendors,
     inventory: appState.inventory,
     purchaseLogs: appState.purchaseLogs,
+    archivedDailyLogs: appState.archivedDailyLogs,
     credentials: {
       geminiKey: appState.apiKey,
       merchantMode: appState.merchantMode
@@ -706,6 +742,13 @@ function getDateInputValue(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function getVendorOrdersForLogs(vendor) {
+  return [
+    ...(vendor.orders || []),
+    ...(appState.archivedDailyLogs || []).filter(log => log.vendorName === vendor.name)
+  ];
+}
+
 function normalizeName(value) {
   return (value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
@@ -754,9 +797,10 @@ function findNearestVendorName(spokenName) {
 function getAnalyticsMonths() {
   const months = new Set([getMonthKey(new Date())]);
   appState.vendors.forEach(vendor => {
-    (vendor.orders || []).forEach(order => months.add(getRecordMonth(order)));
+    getVendorOrdersForLogs(vendor).forEach(order => months.add(getRecordMonth(order)));
     (vendor.history || []).forEach(payment => months.add(getRecordMonth(payment)));
   });
+  (appState.archivedDailyLogs || []).forEach(order => months.add(getRecordMonth(order)));
   return [...months].sort().reverse();
 }
 
@@ -795,7 +839,7 @@ function getBusinessAnalytics(monthKey = selectedAnalyticsMonth) {
       totalCollected += payment.amount || 0;
     });
 
-    (vendor.orders || [])
+    getVendorOrdersForLogs(vendor)
       .filter(order => getRecordMonth(order) === monthKey)
       .forEach(order => {
       const quantity = order.quantity || 0;
@@ -939,6 +983,7 @@ function resetAppToDefaults() {
   }));
   appState.inventory = JSON.parse(JSON.stringify(INVENTORY_STATIC_DEFAULTS));
   appState.purchaseLogs = [];
+  appState.archivedDailyLogs = [];
   appState.apiKey = preservedApiKey;
   selectedAnalyticsMonth = getMonthKey(new Date());
   saveStore().catch(console.error);
@@ -959,6 +1004,7 @@ async function resetSelectedMonthAnalytics() {
     }
   });
   appState.purchaseLogs = (appState.purchaseLogs || []).filter(log => getRecordMonth(log) !== monthKey);
+  appState.archivedDailyLogs = (appState.archivedDailyLogs || []).filter(log => getRecordMonth(log) !== monthKey);
   await saveStore();
   await renderAll();
 }
@@ -1162,7 +1208,7 @@ function renderVendorLogs(vendorIdx) {
   const selectedDate = vendorLogDateFilter.value;
 
   const logs = [];
-  (vendor.orders || []).forEach(order => {
+  getVendorOrdersForLogs(vendor).forEach(order => {
     const date = getRecordDate(order, vendor);
     const total = (order.sp || 0) * (order.quantity || 0);
     logs.push({
@@ -2970,6 +3016,11 @@ function addItemRow(selectedName = "", qty = 1, price = null) {
   const matchedInv = appState.inventory.find(i => i.name === select.value);
   priceInput.value = price !== null ? price : (matchedInv ? matchedInv.sp : 0);
 
+  const lineTotal = document.createElement("span");
+  lineTotal.className = "confirm-line-total";
+  lineTotal.title = "Item total";
+  lineTotal.textContent = formatCurrency((parseFloat(priceInput.value) || 0) * (parseInt(qtyInput.value) || 0));
+
   const removeBtn = document.createElement("button");
   removeBtn.className = "remove-item-row-btn";
   removeBtn.innerHTML = "&times;";
@@ -2993,6 +3044,7 @@ function addItemRow(selectedName = "", qty = 1, price = null) {
   row.appendChild(priceInput);
   row.appendChild(qtyInput);
   row.appendChild(arrowContainer);
+  row.appendChild(lineTotal);
   row.appendChild(removeBtn);
   confirmItemsList.appendChild(row);
 }
@@ -3006,15 +3058,19 @@ function recalculateConfirmationTotals() {
     const select = row.querySelector(".confirm-item-select");
     const qtyInput = row.querySelector(".confirm-qty-input");
     const priceInput = row.querySelector(".confirm-price-input");
+    const lineTotal = row.querySelector(".confirm-line-total");
 
     const itemName = select.value;
     const qty = parseInt(qtyInput.value) || 0;
     const customSp = parseFloat(priceInput.value) || 0;
+    const rowTotal = customSp * qty;
+
+    if (lineTotal) lineTotal.textContent = formatCurrency(rowTotal);
 
     const matchedInv = appState.inventory.find(i => i.name === itemName);
     if (matchedInv) {
       totalBp += matchedInv.bp * qty;
-      todaysBill += customSp * qty;
+      todaysBill += rowTotal;
     }
   });
 
@@ -3095,6 +3151,7 @@ document.addEventListener("change", async (e) => {
         appState.vendors = JSON.parse(JSON.stringify(snapshot.vendors));
         appState.inventory = JSON.parse(JSON.stringify(snapshot.inventory));
         appState.purchaseLogs = JSON.parse(JSON.stringify(snapshot.purchaseLogs || []));
+        appState.archivedDailyLogs = JSON.parse(JSON.stringify(snapshot.archivedDailyLogs || []));
       } else {
         console.warn("⚠️ No merchant snapshot found to restore!");
       }

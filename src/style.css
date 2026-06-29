@@ -2072,20 +2072,22 @@ body {
 
 /* Each item row */
 .confirm-item-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(108px, 1fr) 50px 30px 32px 60px 20px;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   width: 100%;
   background: var(--glass-03);
   border: 1px solid var(--glass-08);
   border-radius: var(--radius-md);
-  padding: 8px 6px;
+  padding: 7px 5px;
+  min-width: 0;
 }
 
 .confirm-item-select {
-  flex: 1 1 0;
+  width: 100%;
   min-width: 0;
-  padding: 8px 10px;
+  padding: 8px 2px 8px 4px;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--glass-10);
@@ -2169,8 +2171,8 @@ body {
 }
 
 .confirm-price-input {
-  width: 46px;
-  flex-shrink: 0;
+  width: 100%;
+  min-width: 0;
   padding: 6px 1px;
   background: var(--glass-05);
   border: 1px solid var(--border-color);
@@ -2185,6 +2187,21 @@ body {
 .confirm-price-input:focus {
   outline: none;
   border-color: var(--accent-amber);
+}
+
+.confirm-line-total {
+  min-width: 0;
+  padding: 7px 2px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.16);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
 }
 
 /* Footer buttons */
